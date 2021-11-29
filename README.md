@@ -1,2 +1,2 @@
 # Pigs
-repository for pig eraditcation code 
+repository for pig eradication code 
