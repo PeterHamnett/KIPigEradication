@@ -1,12 +1,14 @@
 # Peter Hamnett, Kathryn Venning, Frédérik Saltré and Corey Bradshaw
 # Global Ecology, Flinders University — globalecologyflinders.com
 # feral pig (sus scrofa) eradication on Kangaroo Island
+# https://github.com/PeterHamnett/Pigs_test
 # requires library - Plotly
 ### update 15/09/2021
 ## update includes: modification of code from https://github.com/KathrynVenning/FeralCatEradication for application to sus scrofa
 
 
-## adding text for testing version control
+
+## testing text changes version control
 
 ## remove everything
 rm(list = ls())
@@ -119,7 +121,7 @@ K.max <- 12*pop.found ## pre-fire pig population estimated to be ~6000 so adjust
 ## Southgate, R. (2013) Population trends of feral pigs Sus Scrofa on Kangaroo Island: 2008 to 2013 found pigs density to be stable during study period
 ## Assume population was stable at about 6000 individuals
 K.s.vec <- c(1,K.max*0.6,0.75*K.max,0.85*K.max,0.95*K.max) ## arbitrary - describes the x axis of the reduction curve
-red.s.vec <- c(1,0.88,0.80,0.65,0.38) ## arbitrary - describes the y axis of the reduction curve
+red.s.vec <- c(1,0.9,0.8,0.7,0.4) ## arbitrary - describes the y axis of the reduction curve
 plot(K.s.vec,red.s.vec,pch=19,type="b")
 Kred.s.dat <- data.frame(K.s.vec,red.s.vec)
 
@@ -143,8 +145,8 @@ s.c.lp <- coef(fit.s.lp)[3]
 
 # compensatory density feedback: FERTILITY
 
-K.f.vec <- c(1,K.max*0.6,0.75*K.max,0.85*K.max,0.95*K.max) ## describes the x axis of the reduction curve
-red.f.vec <- c(1,0.98,0.95,0.91,0.85) ## describes the y axis of the reduction curve
+K.f.vec <- c(1,K.max*0.7,0.85*K.max,0.90*K.max,0.95*K.max) ## describes the x axis of the reduction curve
+red.f.vec <- c(1,0.99,0.85,0.8,0.7) ## describes the y axis of the reduction curve
 plot(K.f.vec,red.f.vec,pch=19,type="b")
 Kred.f.dat <- data.frame(K.f.vec,red.f.vec)
 
@@ -173,7 +175,7 @@ popmat <- popmat.orig
 
 
 
-## set up projection: deterministic pop projection with loop S and F density feedback
+## set up projection: deterministic pop with both S and F density feedback
 for (i in 1:t) {
   totN.i <- sum(n.mat[,i])
   pigs.s.red <- s.a.lp/(1+(totN.i/s.b.lp)^s.c.lp)
@@ -188,7 +190,7 @@ n.pigs <- colSums(n.mat)
 plot(yrs, n.pigs,type="l",main = "deterministic population projection", sub = " S and F density feedback", lty=1,pch=19,xlab="year",ylab="N",ylim=c(0,1.8*K.max)) #untreated population increases, rate of increase relative to K, no stochastic sampling
 abline(h=K.max, lty=2, col="red") #carry capacity
 
-## set up projection loop for deterministic population with S density feedback
+## set up projection loop for deterministic population with S density feedback only
 for (i in 1:t) {
   totN.i <- sum(n.mat[,i])
   pigs.s.red <- s.a.lp/(1+(totN.i/s.b.lp)^s.c.lp)
@@ -202,7 +204,7 @@ n.pigs <- colSums(n.mat)
 plot(yrs, n.pigs,type="l",main= "deterministic pop projection",sub = "S density feedback", lty=1,pch=19,xlab="year",ylab="N",ylim=c(0,1.8*K.max)) #untreated population increases, rate of increase relative to K, no stochastic sampling
 abline(h=K.max, lty=2, col="red") #dashed red line indicating carry capacity
 
-## set up projection loop deterministic population with F density feedback
+## set up projection loop for deterministic population with F density feedback
 for (i in 1:t) {
   totN.i <- sum(n.mat[,i])
   pigs.f.red <- f.a.lp/(1+(totN.i/s.b.lp)^s.c.lp)
@@ -279,6 +281,7 @@ lines(yrs,n.lo,lty=2,col="red",lwd=1.5)
 lines(yrs,n.up,lty=2,col="red",lwd=1.5)
 
 datN <- data.frame(yrs, n.md, n.lo, n.up)
+
 
 ###############################################################################################################################
 ## constant proportional yearly harvest
