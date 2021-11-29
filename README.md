@@ -1,2 +1,2 @@
-# Pigs_test
-test repository for pigs code and gihub version control
+# Pigs
+repository for pig eraditcation code 
