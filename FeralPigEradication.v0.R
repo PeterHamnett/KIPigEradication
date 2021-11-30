@@ -154,8 +154,8 @@ s.c.lp <- coef(fit.s.lp)[3]
 
 # compensatory density feedback: FERTILITY
 
-K.f.vec <- c(1,K.max*0.7,0.85*K.max,0.90*K.max,0.95*K.max) ## describes the x axis of the reduction curve
-red.f.vec <- c(1,0.99,0.93,0.90,0.83)
+K.f.vec <- c(1,K.max*0.6,0.85*K.max,0.92*K.max,0.95*K.max) ## describes the x axis of the reduction curve
+red.f.vec <- c(1,0.995,0.988,0.985,0.9835)
 ##past attempts
 ##red.f.vec <- c(1,0.99,0.93,0.90,0.83) ## Best of the attempts with V1 Survival
 ##red.f.vec <- c(1,0.99,0.92,0.89,0.82)
