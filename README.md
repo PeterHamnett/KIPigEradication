@@ -9,8 +9,8 @@
 <a href="http://globalecologyflinders.com" target="_blank">Global Ecology</a>, <a href="http://flinders.edu.au" target="_blank">Flinders University</a>, Adelaide, Australia <br>
 November 2021 <br>
   
-## Required R libraries
-- <code>gtools</code>
+## Source files
+- <code>matrixOperators.R</code>
   
 ## Further reading
 - <a href="https://github.com/cjabradshaw/KIpigCull">Non-age structured feral pig-culling model for Kangaroo Island</a> (Github repository)
