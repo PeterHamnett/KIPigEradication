@@ -3,7 +3,7 @@
 # feral pig (sus scrofa) eradication on Kangaroo Island
 # https://github.com/PeterHamnett/Pigs_test
 # requires library - Plotly
-### update 15/09/2021
+### update 30/11/2021
 ## update includes: modification of code from https://github.com/KathrynVenning/FeralCatEradication for application to sus scrofa
 
 
@@ -31,20 +31,27 @@ source("~/Documents - Peter’s MacBook Pro/R Resources/Projects /Pigs/Thesis Pr
 # create Leslie matrix
 age.max = 6 # Choquenot, D (1996)
 
-#fertility and survival values after Bieber and Ruf (2005), Table 2. Values 
-## F =  mean litter size/2*proportion of individuals reproducing rather than stated fertility values
-##!!! Try to find some Australian values in place of Bieber (2005). No luck yet
+#fertility and survival values after Bieber and Ruf (2005), Table 2.
+## all intermediate values (table 2 lists good, intermediate and poor values reflecting variation in S and F according to environmental conditions)
+## with the exception of last age class which is assigned the poor value to reflect senescence 
+## F =  mean litter size/2*proportion of individuals reproducing rather than stated fertility values. Assumes 1:1 sex ratio
+
+## fertility and survival values comparable to those listed in Choquenot (1996):
+    ##Adult mortality 15-50%. Probability of survival range = 0.85 -0.5, avg = 0.675
+    ##Juvenile mortality as 10-15% up to 100% in bad years. probability of survival range = 0.9-0, avg = 0.45
+    ##Adult fertility 0.85 litters per year. Range 4.9-5.6 piglets per litter. Avg female offspring per year  = 2.38
+    ##juvenile fertility: divide adult fertility by 3 to account for proportion of females breeding in first year of life
 
 ## create vectors 
 
-f.vec <- c(0.8, 2.3375, 2.925, 2.925, 2.925, 2.835) ## all intermediate values 
-## with the exception of last age class which is assigned the poor value to reflect senescence 
+f.vec <- c(0.8, 2.3375, 2.925, 2.925, 2.925, 2.835) 
+## alternative values from Choquenot (1996) ## f.vec <-c(0.79, 2.38, 2.38, 2.38, 2.38, 2.38)
 
 ## KI feral pig birth rates matrix, data for female offspring produced each year.
 
 plot(0:5,f.vec, pch=19, type="b")
 
-# fertility errors based on Bieber and Ruf (2005)
+# fertility errors based on Bieber and Ruf (2005). Unsure how to (or if I can) produce SD from Choquenot (1996)
 ## SD calculated as the mean(c(((intermediate value - poor  value)/2),((good value - intermediate value)/2)))
 J.f.sd <- mean(c(((0.8 - 0.525)/2),((1.125 - 0.8)/2))) #mean and standard deviations, juvenile fertility
 Y.f.sd <- mean(c(((1.8 - 1.625)/2) ,((2.3375 - 1.8)/2))) #mean and standard deviations, yearling fertility
@@ -53,8 +60,10 @@ f.sd.vec <- c(J.f.sd, Y.f.sd, A.f.sd, A.f.sd, A.f.sd, A.f.sd) #mean and standard
 
 #survival
 s.vec <- c(0.33, 0.40, 0.66, 0.66, 0.66, 0.58) ##feral pig survival # intermediate values from Bieber and Ruf (2005), except 6 which is the poor value.
+## alternative values from Choquenot (1996) ## s.vec <- c(0.45, 0.675, 0.675, 0.675, 0.675, 0.675)
+
 ## SD calculated as the mean(c(((mid range value - low range value)/2),((high range value - mid range value)/2)))
-# survival errors based on Bieber and Ruf (2005)
+# survival errors based on Bieber and Ruf (2005). Unsure how to (or if I can) produce SD from Choquenot (1996)
 J.s.sd <- mean(c(((0.33 - 0.25)/2),((0.52 - 0.33)/2))) #mean and standard deviations, juvenile survival
 Y.s.sd <- mean(c(((0.40 - 0.31)/2),((0.60 - 0.40)/2))) #mean and standard deviations, yearling survival
 A.s.sd <- mean(c(((0.66 -0.58)/2),((0.71 -0.66)/2))) #mean and standard deviations, adult survival
@@ -90,7 +99,7 @@ init.vec <- ssd * pop.found #initial population vector. Sum of all values here =
 yr.now <- 2020 # update if more data available post-2010. Change to start year to 2021
 #************************
 
-yr.end <- 2070 #end year for our projection timeframe
+yr.end <- 2035 #end year for our projection timeframe
 #************************
 t <- (yr.end - yr.now) #timeframe
 ## we can adjust this later to explore different scenarios 
@@ -122,8 +131,8 @@ K.max <- 12*pop.found ## pre-fire pig population estimated to be ~6000 so adjust
 ## Assume population was stable at about 6000 individuals
 ## As projection is plateauing a bit below 2000 pigs, could try increasing K above 3000 to achieve plateau at 3000
 
-K.s.vec <- c(1,K.max*0.6,0.75*K.max,0.85*K.max,0.95*K.max) ## arbitrary - describes the x axis of the reduction curve
-red.s.vec <- c(1,0.65,0.55,0.45,0.2) ## arbitrary - describes the y axis of the reduction curve
+K.s.vec <- c(1,K.max*0.6,0.75*K.max,0.85*K.max,0.95*K.max) ##describes the x axis of the reduction curve
+red.s.vec <- c(1,0.65,0.55,0.45,0.3) ## describes the y axis of the reduction curve
 plot(K.s.vec,red.s.vec,pch=19,type="b")
 Kred.s.dat <- data.frame(K.s.vec,red.s.vec)
 
@@ -300,13 +309,13 @@ min.med.n <- min.lo.n <- min.up.n <- rep(0,length(harv.prop.consist))
 for (s in 1:length(harv.prop.consist)) {
   
   # set storage matrices & vectors
-  n.sums.mat <- matrix(data = 0, nrow = iter, ncol = (t+1))
+  n.sums.mat <- matrix(data = 0, nrow = iter, ncol = (t+1)) #storage matrix with 1000 rows and 16 columns based on timeframe
   
   for (e in 1:iter) {
     popmat <- popmat.orig
     
     n.mat <- matrix(0, nrow=age.max,ncol=(t+1))
-    n.mat[,1] <- init.vec
+    n.mat[,1] <- init.vec*ssd
     
     for (i in 1:t) {
       # stochastic survival values
@@ -314,26 +323,21 @@ for (s in 1:length(harv.prop.consist)) {
       s.beta <- estBetaParams(s.vec, s.sd.vec^2)$beta
       s.stoch <- rbeta(length(s.alpha), s.alpha, s.beta)
       
-      # stochastic fertilty sampler (gaussian)
-      fert.stch <- rnorm(length(popmat[,1]), popmat[1,], s.sd.vec)
+      # stochastic fertility sampler (gaussian)
+      fert.stch <- rnorm(length(popmat[,1]), popmat[1,], f.sd.vec/2)
       fert.stoch <- ifelse(fert.stch < 0, 0, fert.stch)
       
       totN.i <- sum(n.mat[,i])
-      pred.red <- a.lp/(1+(totN.i/b.lp)^c.lp)
+      pigs.s.red <- as.numeric(s.a.lp/(1+(totN.i/s.b.lp)^s.c.lp))
+      pigs.f.red <- as.numeric(f.a.lp/(1+(totN.i/f.b.lp)^f.c.lp))
+      #a/(1+(K.vec/b)^c)
       
-      popmat[1,] <- fert.stoch
-      diag(popmat[2:age.max,]) <- s.stoch*pigs.s.red
+      popmat[1,] <- fert.stoch*pigs.f.red
+      diag(popmat[2:age.max,]) <- s.stoch[1:5]*pigs.s.red
+      popmat[age.max,age.max] <- s.stoch[6]*pigs.s.red
       #popmat[age.max,age.max] <- 0
       
       n.mat[,i+1] <- popmat %*% n.mat[,i]
-      
-      ## harvest things here
-      n.mat[,i+1] <- n.mat[,i+1] - round(stable.stage.dist(popmat) * round(sum(n.mat[,i+1])*harv.prop.consist[s], 0), 0)
-      
-      
-      if (length(which(n.mat[,i+1] < 0)) > 0) {
-        n.mat[which(n.mat[,i+1] < 0), i+1] <- 0
-      }
       
     } # end i loop
     
@@ -683,7 +687,7 @@ for (m in 1:length(harv.prop.maint)) {
         s.beta <- estBetaParams(s.vec, s.sd.vec^2)$beta
         s.stoch <- rbeta(length(s.alpha), s.alpha, s.beta)
         
-        # stochastic fertilty sampler (gaussian)
+        # stochastic fertility sampler (gaussian)
         fert.stch <- rnorm(length(popmat[,1]), popmat[1,], s.sd.vec)
         fert.stoch <- ifelse(fert.stch < 0, 0, fert.stch)
         
