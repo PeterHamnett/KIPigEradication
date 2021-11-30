@@ -99,7 +99,7 @@ init.vec <- ssd * pop.found #initial population vector. Sum of all values here =
 yr.now <- 2020 # update if more data available post-2010. Change to start year to 2021
 #************************
 
-yr.end <- 2035 #end year for our projection timeframe
+yr.end <- 2040 #end year for our projection timeframe
 #************************
 t <- (yr.end - yr.now) #timeframe
 ## we can adjust this later to explore different scenarios 
@@ -237,10 +237,6 @@ abline(h=K.max, lty=2, col="red") #carry capacity
 iter <- 1000 #final model run at 10 000
 itdiv <- iter/100 #final model rate at iter/1000
 
-## Model works up to here. Population stabilizes around carrying capacity after ~7-8years
-
-## but then ...
-
 ################################################################################################################
 ## untreated population
 ###############################################################################################################
@@ -295,6 +291,8 @@ lines(yrs,n.up,lty=2,col="red",lwd=1.5)
 
 datN <- data.frame(yrs, n.md, n.lo, n.up)
 
+## not entirely happy with this plot. 
+## Short 21 year time frame hides the fact that population is slowly declining rather than reaching equilibrium near K
 
 ###############################################################################################################################
 ## constant proportional yearly harvest
@@ -305,7 +303,6 @@ harv.prop.consist <- seq(0.2,0.99,0.05) #sequence harvest/culling quotas, e.g re
 
 # define our quasi-extinction probability storage vector
 min.med.n <- min.lo.n <- min.up.n <- rep(0,length(harv.prop.consist))
-
 
 for (s in 1:length(harv.prop.consist)) {
    
@@ -341,15 +338,16 @@ for (s in 1:length(harv.prop.consist)) {
       
       n.mat[,i+1] <- popmat %*% n.mat[,i]
       
-    } # end i loop
+      ## harvest things here
+      n.mat[,i+1] <- n.mat[,i+1] - round(stable.stage.dist(popmat) * round(sum(n.mat[,i+1])*harv.prop.consist[s], 0), 0)
+      
+      
+      if (length(which(n.mat[,i+1] < 0)) > 0) {
+        n.mat[which(n.mat[,i+1] < 0), i+1] <- 0
+        
+        } 
     
-    ## harvest things here
-    n.mat[,i+1] <- n.mat[,i+1] - round(stable.stage.dist(popmat) * round(sum(n.mat[,i+1])*harv.prop.consist[s], 0), 0)
-    
-    
-    if (length(which(n.mat[,i+1] < 0)) > 0) {
-      n.mat[which(n.mat[,i+1] < 0), i+1] <- 0
-    }
+    }# end i loop
     
     n.sums.mat[e,] <- as.vector((colSums(n.mat))/pop.found) # / pop.mat for min proportion remaining population 
     
