@@ -253,7 +253,7 @@ for (e in 1:iter) {
   popmat <- popmat.orig
   
   n.mat <- matrix(0, nrow=age.max,ncol=(t+1))
-  n.mat[,1] <- init.vec*ssd
+  n.mat[,1] <- init.vec
   
   for (i in 1:t) {
     # stochastic survival values
@@ -301,21 +301,23 @@ datN <- data.frame(yrs, n.md, n.lo, n.up)
 ###############################################################################################################################
 
 # harvest rate
-harv.prop.consist <- seq(0.2,0.99,0.05) #sequence harvest/culling quotas, e.g remove 0.5-.99 proportion of founding pop
+harv.prop.consist <- seq(0.2,0.99,0.05) #sequence harvest/culling quotas, e.g remove 0.2-.99 proportion of founding pop in increasing increments of 0.05
 
 # define our quasi-extinction probability storage vector
 min.med.n <- min.lo.n <- min.up.n <- rep(0,length(harv.prop.consist))
 
+
 for (s in 1:length(harv.prop.consist)) {
-  
+   
   # set storage matrices & vectors
-  n.sums.mat <- matrix(data = 0, nrow = iter, ncol = (t+1)) #storage matrix with 1000 rows and 16 columns based on timeframe
-  
+  n.sums.mat <- matrix(data = 0, nrow = iter, ncol = (t+1)) 
+  #storage matrix with 1000 rows and 16 columns (years) based on timeframe
+ 
   for (e in 1:iter) {
     popmat <- popmat.orig
     
     n.mat <- matrix(0, nrow=age.max,ncol=(t+1))
-    n.mat[,1] <- init.vec*ssd
+    n.mat[,1] <- init.vec
     
     for (i in 1:t) {
       # stochastic survival values
@@ -340,6 +342,14 @@ for (s in 1:length(harv.prop.consist)) {
       n.mat[,i+1] <- popmat %*% n.mat[,i]
       
     } # end i loop
+    
+    ## harvest things here
+    n.mat[,i+1] <- n.mat[,i+1] - round(stable.stage.dist(popmat) * round(sum(n.mat[,i+1])*harv.prop.consist[s], 0), 0)
+    
+    
+    if (length(which(n.mat[,i+1] < 0)) > 0) {
+      n.mat[which(n.mat[,i+1] < 0), i+1] <- 0
+    }
     
     n.sums.mat[e,] <- as.vector((colSums(n.mat))/pop.found) # / pop.mat for min proportion remaining population 
     
