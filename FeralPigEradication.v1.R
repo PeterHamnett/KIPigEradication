@@ -414,15 +414,18 @@ for (m in 1:length(harv.prop.maint)) {
         s.beta <- estBetaParams(s.vec, s.sd.vec^2)$beta
         s.stoch <- rbeta(length(s.alpha), s.alpha, s.beta)
         
-        # stochastic fertilty sampler (gaussian)
-        fert.stch <- rnorm(length(popmat[,1]), popmat[1,], s.sd.vec)
+        # stochastic fertility sampler (gaussian)
+        fert.stch <- rnorm(length(popmat[,1]), popmat[1,], f.sd.vec/2)
         fert.stoch <- ifelse(fert.stch < 0, 0, fert.stch)
         
         totN.i <- sum(n.mat[,i])
-        pred.red <- a.lp/(1+(totN.i/b.lp)^c.lp)
+        pigs.s.red <- as.numeric(s.a.lp/(1+(totN.i/s.b.lp)^s.c.lp))
+        pigs.f.red <- as.numeric(f.a.lp/(1+(totN.i/f.b.lp)^f.c.lp))
+        #a/(1+(K.vec/b)^c)
         
-        popmat[1,] <- fert.stoch
-        diag(popmat[2:age.max,]) <- s.stoch*pred.red
+        popmat[1,] <- fert.stoch*pigs.f.red
+        diag(popmat[2:age.max,]) <- s.stoch[1:5]*pigs.s.red
+        popmat[age.max,age.max] <- s.stoch[6]*pigs.s.red
         #popmat[age.max,age.max] <- 0
         
         n.mat[,i+1] <- popmat %*% n.mat[,i]
@@ -838,103 +841,4 @@ cost3d <- plot_ly(showscale = FALSE) %>%
     yaxis = list(title="initial cull", titlefont=f1, tickfont=f2, ticketmode='array', ticktext=as.character(seq(0.5,0.9,0.1)), tickvals=seq(0,8,2)),
     zaxis = list(title="tot $", tickfont=f3, titlefont=f1)))
 cost3d
-
-
-################################################################################################################################################################################################
-#################################################################################################### trap-neuter-release #######################################################################
-#################################################################################################################################################################################################
-### SAME METHODS AS ABOVE, ALTERED FERTILITY INSTEAD OF SURVIVAL
-
-TNR <- seq(.01,.9,.01)
-
-min.med.n <- min.lo.n <- min.up.n <- rep(0,length(TNR))
-
-for (s in 1:length(TNR)) {
-  
-  #storage matrix
-  n.sums.mat <- matrix(0, nrow = iter, ncol = (t+1))
-  
-  for (e in 1:iter){
-    popmat <- popmat.orig
-    
-    n.mat <- matrix(0, nrow = age.max, ncol = (t+1))
-    n.mat[,1] <- init.vec
-    
-    for (i in 1:t) {
-      # stochastic survival values
-      s.alpha <- estBetaParams(s.vec, s.sd.vec^2)$alpha
-      s.beta <- estBetaParams(s.vec, s.sd.vec^2)$beta
-      s.stoch <- rbeta(length(s.alpha), s.alpha, s.beta)
-      
-      # stochastic fertilty sampler (gaussian)
-      fert.stch <- rnorm(length(popmat[,1]), popmat[1,], s.sd.vec)
-      fert.stoch <- ifelse(fert.stch < 0, 0, fert.stch)
-      
-      totN.i <- sum(n.mat[,i])
-      pred.red <- a.lp/(1+(totN.i/b.lp)^c.lp)
-      
-      popmat[1,] <- fert.stoch  # add new stochastically resampled fertilities
-      diag(popmat[2:age.max,]) <- s.stoch*pred.red # add new stochastically resampled survivals
-      #popmat[age.max,age.max] <- 0 # add new stochastically resampled survivals
-      
-      #fertility reduction 
-      popmat[1,] <- popmat[1,]*TNR[s]
-      
-      # project
-      n.mat[,i+1] <- popmat %*% n.mat[,i]
-      
-      if (length(which(n.mat[,i+1] < 0)) > 0) {
-        n.mat[which(n.mat[,i+1] < 0), i+1] <- 0
-      }
-      
-    } #end i loop
-    
-    n.sums.mat[e,] <- as.vector(colSums(n.mat))
-    
-    if (e %% itdiv==0) print(e) 
-    
-  } #end e loop
-  
-  min.pop.vec <- apply(n.sums.mat, MARGIN=1, min, na.rm=T)
-  min.med.n[s] <- median(min.pop.vec, na.rm=T)
-  min.lo.n[s] <- quantile(min.pop.vec, probs=0.025, na.rm=T)
-  min.up.n[s] <- quantile(min.pop.vec, probs=0.975, na.rm=T)
-  
-  n.md <- apply(n.sums.mat, MARGIN=2, mean, na.rm=T) # minimum over all iterations
-  n.up <- apply(n.sums.mat, MARGIN=2, quantile, probs=0.975, na.rm=T) # upper over all iterations
-  n.lo <- apply(n.sums.mat, MARGIN=2, quantile, probs=0.025, na.rm=T) # lower over all iterations
-  
-  plot(yrs,n.md,type="l",xlab="year", ylab="minimum N", lwd=2, ylim=c(0.95*min(n.lo),1.05*max(n.up)))
-  lines(yrs,n.lo,lty=2,col="red",lwd=1.5)
-  lines(yrs,n.up,lty=2,col="red",lwd=1.5)
-  
-  print("##############")
-  print(paste("TNR = ", TNR[s], sep=""))
-  print("##############")
-  
-} #end s loop
-
-plot(1-TNR, min.med.n/pop.found, type="l", pch=19, xlab="proportion spayed each year", ylab="proportion of N1", ylim=c(min(min.lo.n/pop.found),max(min.up.n/pop.found)))
-lines(1-TNR, min.lo.n/pop.found, col="red", lty=2)
-lines(1-TNR, min.up.n/pop.found, col="red", lty=2)
-
-spay.out <- data.frame(1-TNR, min.med.n/pop.found, min.up.n/pop.found, min.lo.n/pop.found)
-colnames(spay.out) <- c("pSpay","pNmed","pNup","pNlo")
-
-
-TNR.pop <- data.frame(1-TNR, min.med.n, min.up.n, min.up.n)
-colnames(TNR.pop) <- c('proportion spayed', 'Median', 'Upper', 'Lower')
-
-
-
-
-
-
-
-
-
-
-
-
-
 
