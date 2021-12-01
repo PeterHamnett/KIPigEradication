@@ -5,7 +5,7 @@
 
   
 <br>
-<a href="http://scholar.google.com.au/citations?sortby=pubdate&hl=en&user=1sO0O3wAAAAJ&view_op=list_works">Peter Hamnett</a> <br>
+<a href="https://globalecologyflinders.com/people/#PH">Peter Hamnett</a> <br>
 <a href="http://globalecologyflinders.com" target="_blank">Global Ecology</a>, <a href="http://flinders.edu.au" target="_blank">Flinders University</a>, Adelaide, Australia <br>
 November 2021 <br>
   
