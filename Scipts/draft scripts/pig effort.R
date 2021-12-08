@@ -1,5 +1,6 @@
 source("~/Documents - Peter’s MacBook Pro/R Resources/Projects /Pigs_test/data/Final/pigs_effort_no_LU.csv")
 library(readr)
+library(dplyr)
 pigs_effort_no_LU <- read_csv("data/Final/pigs_effort_no_LU.csv")
 View(pigs_effort_no_LU)
 effort<-data.frame(pigs_effort_no_LU)
@@ -37,7 +38,6 @@ effort$hrs_pig<-effort$effort.hrs/effort$no..killed
 head(effort)
 
 # Create subsets of effort dataframe for each control type
-
 poison_efrt <-effort %>% filter (Control.Type == "poisoned")
 shot_efrt <-effort %>% filter (Control.Type == "shot")
 trap_efrt <-effort %>% filter (Control.Type == "trapped")
@@ -72,7 +72,7 @@ ggplot(shot_efrt, aes(x = Prop_remaining,y = pigs_hr)) + scale_x_reverse() + geo
 ggplot(TAAC_efrt, aes(x = Prop_remaining,y = pigs_hr)) + scale_x_reverse() + geom_point() + geom_smooth() + labs(title = "TAAC CPUE")
 
 # and  hrs_pig
-ggplot(poison_efrt, aes(x = Prop_remaining,y = hrs_pig)) + scale_x_reverse() + geom_point() + geom_smooth()  + labs(title = "Poison: Effort per pig")
+ggplot(poison_efrt, aes(x = Prop_remaining,y = hrs_pig)) + scale_x_reverse() + geom_point() + geom_smooth( method = lm)  + labs(title = "Poison: Effort per pig")
 ggplot(trap_efrt, aes(x = Prop_remaining,y = hrs_pig)) + scale_x_reverse() + geom_point() + geom_smooth() + labs(title = "Trapping: Effort per pig")
 ggplot(shot_efrt, aes(x = Prop_remaining,y = hrs_pig)) + scale_x_reverse() + geom_point() + geom_smooth() + labs(title = "Shooting: Effort per pig")
 ggplot(TAAC_efrt, aes(x = Prop_remaining,y = hrs_pig)) + scale_x_reverse() + geom_point() + geom_smooth() + labs(title = "TAAC: Effort per pig")
