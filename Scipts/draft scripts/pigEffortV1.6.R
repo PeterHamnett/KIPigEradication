@@ -1,0 +1,275 @@
+rm(list = ls())
+
+# functions
+# Set functions
+AICc <- function(...) {
+  models <- list(...)
+  num.mod <- length(models)
+  AICcs <- numeric(num.mod)
+  ns <- numeric(num.mod)
+  ks <- numeric(num.mod)
+  AICc.vec <- rep(0,num.mod)
+  for (i in 1:num.mod) {
+    if (length(models[[i]]$df.residual) == 0) n <- models[[i]]$dims$N else n <- length(models[[i]]$residuals)
+    if (length(models[[i]]$df.residual) == 0) k <- sum(models[[i]]$dims$ncol) else k <- (length(models[[i]]$coeff))+1
+    AICcs[i] <- (-2*logLik(models[[i]])) + ((2*k*n)/(n-k-1))
+    ns[i] <- n
+    ks[i] <- k
+    AICc.vec[i] <- AICcs[i]
+  }
+  return(AICc.vec)
+}
+
+delta.AIC <- function(x) x - min(x) ## where x is a vector of AIC
+weight.AIC <- function(x) (exp(-0.5*x))/sum(exp(-0.5*x)) ## Where x is a vector of dAIC
+ch.dev <- function(x) ((( as.numeric(x$null.deviance) - as.numeric(x$deviance) )/ as.numeric(x$null.deviance))*100) ## % change in deviance, where x is glm object
+
+linreg.ER <- function(x,y) { # where x and y are vectors of the same length; calls AICc, delta.AIC, weight.AIC functions
+  fit.full <- lm(y ~ x); fit.null <- lm(y ~ 1)
+  AIC.vec <- c(AICc(fit.full),AICc(fit.null))
+  dAIC.vec <- delta.AIC(AIC.vec); wAIC.vec <- weight.AIC(dAIC.vec)
+  ER <- wAIC.vec[1]/wAIC.vec[2]
+  r.sq.adj <- as.numeric(summary(fit.full)[9])
+  return(c(ER,r.sq.adj))
+}
+
+library(readr)
+library(dplyr)
+pigs_effort_no_LU <- read_csv("data/Final/pigeffort3.csv")
+# View(pigs_effort_no_LU)
+effort<-data.frame(pigs_effort_no_LU)
+head(effort)
+effort.orig <- effort # back up version of effort to revert to just in case
+
+# create a copy of effort in case this goes wrong
+effort_dates <- effort
+
+# convert Date column from chr to date format
+effort_dates$Date <- as.Date(effort$Date, format = "%d/%m/%y")
+
+# it worked so overwrite effort with the new data
+effort <- effort_dates
+
+# sort by date 
+effort <- effort[order(effort$Date),] 
+# Oldest records are now at the top of the data frame
+
+# remove this section as proportion remaining already saved in the pigeffort3.csv
+# Total number of pigs killed (where effort was recorded)= 
+# sum(effort$numkilled)
+# 740
+
+
+#following section removed as propRemaining now included in effort3.csv
+
+  # Create column showing proportion of pigs remaining after each event in chronological order, assuming starting proportion is 1 and final proportion is 0
+  # effort$propRemaining <- (sum(effort$numkilled) - cumsum(effort$numkilled))/sum(effort$numkilled)
+  # cumsum is the sum of the current value and all previous values in the column
+  # so here we have (total pigs killed - pigs killed to date)/total pigs killed
+  # give proportions in declining in order from just short of 1 (1 is before any pigs were killed) down to 0
+  # head(effort)
+  # tail(effort)
+
+# some of the rows contain NA for effort, we want to remove these rows for further analysis of effort
+# this line simply removes any row with NA in any of the columns, not just in the efforthrs column.
+effort <- na.omit(effort)
+
+# create a new column with the inverse of pigs/hr i.e., hrs per pig
+## this will allow us to quantify changes in cost relative to proportion of population remaining, once we have calculated cost per hour for each control type.
+
+effort$hrsPig <- effort$efforthrs/effort$numkilled
+#Check the new column was added
+head(effort)
+
+# Create subsets of effort dataframe for each control type
+
+poison_efrt <-effort %>% filter (controlType == "poisoned")
+poison_efrt <-poison_efrt %>% filter (org != "LB") # excludes outliers - poisoning done by the landscape board
+shot_efrt <-effort %>% filter (controlType == "shot")
+shot_efrt <- shot_efrt %>% filter (operator != "PJ") # excludes shooting by PJ,
+          ## Paul Jennings. Records are dubious as effort = 100hrs for all events
+## try separating shooting effort according to free-feeding and opportunistic effort
+# shot_efrt_FF <- shot_efrt %>% filter (FF.O == "FF")
+# shot_efrt_O <- shot_efrt %>% filter (FF.O == "O")
+trap_efrt <-effort %>% filter (controlType == "trapped")
+trap_efrt <-trap_efrt %>% filter (org != "DEW") # excludes DEW outliers
+TAAC_efrt <-effort %>% filter (controlType == "TAAC") # only conducted by HeliSurveys so no further filtering 
+
+## For each control method, tried several iterations removing events attributed to diffirent individuals and organisations...
+##... to estimate functional response functions that fit the expected curve.
+ 
+# NonTAAC_efrt <- effort %>% filter (controlType !="TAAC") 
+### additional dataframe to see combined response of all ground based control
+## not pursued as didn't generate satisfactory response curve
+
+par(mfrow=c(2,2))
+## Poison
+plot(hrsPig~propRemaining, data = poison_efrt, pch=19, cex=0.7, main = "Poison CPUE", xlim=c(0,1), ylim=c(0,75), col = factor(poison_efrt$org))
+abline(h=0, lty=3, lwd=0.5)
+legend ("topleft", legend = levels (factor(poison_efrt$org)), pch = 19, col = factor(levels(factor(poison_efrt$org))))
+
+# logarithmic fit: y = a + b*log(x)
+fitPoison <- lm(hrsPig ~ log(propRemaining), data=poison_efrt) # logarithmic fit
+summary(fitPoison)
+linreg.ER(log(poison_efrt$propRemaining),poison_efrt$hrsPig)
+lpropRemaining.cont <- log(seq(0.01, 1, 0.01))
+hrsPigPoison.pred <- coef(fitPoison)[1] + coef(fitPoison)[2]*lpropRemaining.cont
+lines(exp(lpropRemaining.cont), hrsPigPoison.pred, lty=2, col="red")
+
+# exponential: y = a * exp(-b*x)
+s.param.init <- c(200, 5)
+fitPoisonExp <- nls(hrsPig ~ a * exp(-b*propRemaining), 
+                data = poison_efrt,
+                algorithm = "port",
+                start = c(a = s.param.init[1], b = s.param.init[2]),
+                trace = TRUE,      
+                nls.control(maxiter = 1000, tol = 1e-05, minFactor = 1/1024))
+fitPoisonExp.summ <- summary(fitPoisonExp)
+propRemaining.cont <- exp(lpropRemaining.cont)
+hrsPigPoisonExp.pred <- coef(fitPoisonExp)[1] * exp(-coef(fitPoisonExp)[2] * propRemaining.cont)
+lines(propRemaining.cont,hrsPigPoisonExp.pred,lty=3,lwd=2,col="green")
+
+#linear fit
+fitPoisonLin <- lm(hrsPig ~ propRemaining, data=poison_efrt) # fits the Linear model
+summary(fitPoisonLin) # provides summary statistics of the LM for AIC comparison, not plotted
+
+#intercept only
+fitPoisonInt <- lm(hrsPig ~ 1, data=poison_efrt) 
+summary(fitPoisonInt)
+
+## Trap
+plot(hrsPig~propRemaining, data = trap_efrt, pch=19, cex=0.7, main = "Trapping CPUE", xlim=c(0,1), ylim=c(0,40), col = factor(trap_efrt$org))
+abline(h=0, lty=3, lwd=0.5)
+legend ("topleft", legend = levels (factor(trap_efrt$org)), pch = 19, col = factor(levels(factor(trap_efrt$org))))
+
+# logarithmic fit
+fitTrap <- lm(hrsPig ~ log(propRemaining), data=trap_efrt, na.action = ) # logarithmic fit
+summary(fitTrap)
+linreg.ER(log(trap_efrt$propRemaining),trap_efrt$hrsPig)
+hrsPigTrap.pred <- coef(fitTrap)[1] + coef(fitTrap)[2]*lpropRemaining.cont
+lines(exp(lpropRemaining.cont), hrsPigTrap.pred, lty=2, col="red")
+
+# exponential: y = a * exp(-b*x)
+s.param.init <- c(12, 2)
+fitTrapExp <- nls(hrsPig ~ a * exp(-b*propRemaining), 
+                    data = trap_efrt,
+                    algorithm = "port",
+                    start = c(a = s.param.init[1], b = s.param.init[2]),
+                    trace = TRUE,      
+                    nls.control(maxiter = 1000, tol = 1e-05, minFactor = 1/1024))
+fitTrapExp.summ <- summary(fitTrapExp)
+hrsPigTrapExp.pred <- coef(fitTrapExp)[1] * exp(-coef(fitTrapExp)[2] * propRemaining.cont)
+lines(propRemaining.cont,hrsPigTrapExp.pred,lty=3,lwd=2,col="green")
+
+#linear fit
+fitTrapLin <- lm(hrsPig ~ propRemaining, data=trap_efrt) # fits the Linear model
+summary(fitTrapLin) # provides summary statistics of the LM for AIC comparison, not plotted
+
+#intercept only
+fitTrapInt <- lm(hrsPig ~ 1, data=trap_efrt) 
+summary(fitTrapInt)
+
+## Shot
+plot(hrsPig~propRemaining, data = shot_efrt, pch=19, cex=0.7, main = "Shot CPUE", xlim=c(0,1), ylim=c(0,110), col = factor(shot_efrt$operator))
+abline(h=0, lty=3, lwd=0.5)
+legend ("topleft", legend = levels (factor(shot_efrt$operator)), pch = 19, col = factor(levels(factor(shot_efrt$operator))))
+
+# logarithmic fit
+# remove zeros
+# shot_efrtNZ <- shot_efrt[-(which(shot_efrt$propRemaining==0)), ]
+
+fitShot <- lm(hrsPig ~ log(propRemaining), data=shot_efrt, na.action =) # logarithmic fit
+summary(fitShot)
+linreg.ER(log(shot_efrt$propRemaining),shot_efrt$hrsPig)
+hrsPigShot.pred <- coef(fitShot)[1] + coef(fitShot)[2]*lpropRemaining.cont
+lines(exp(lpropRemaining.cont), hrsPigShot.pred, lty=2, col="red")
+
+# exponential: y = a * exp(-b*x)
+s.param.init <- c(200, 5)
+fitShotExp <- nls(hrsPig ~ a * exp(-b*propRemaining), 
+                  data = shot_efrt,
+                  #algorithm = "port",
+                  start = c(a = s.param.init[1], b = s.param.init[2]),
+                  trace = TRUE,      
+                  nls.control(maxiter = 1000, tol = 1e-05, minFactor = 1/1024))
+fitShotExp.summ <- summary(fitShotExp)
+fitShotExp.summ
+hrsPigShotExp.pred <- coef(fitShotExp)[1] * exp(-coef(fitShotExp)[2] * propRemaining.cont)
+lines(propRemaining.cont,hrsPigShotExp.pred,lty=3,lwd=2,col="green")
+
+#linear fit
+fitShotLin <- lm(hrsPig ~ propRemaining, data=shot_efrt) # fits the Linear model
+summary(fitShotLin) # provides summary statistics of the LM for AIC comparison, not plotted
+
+#intercept only
+fitShotInt <- lm(hrsPig ~ 1, data=shot_efrt) 
+summary(fitshotInt)
+
+## TAAC
+plot(hrsPig~propRemaining, data = TAAC_efrt, pch=19, cex=0.7, main = "TAAC CPUE", xlim=c(0,1), ylim=c(0,5))
+abline(h=0, lty=3, lwd=0.5)
+
+# remove infinite
+TAAC_efrtNI <- TAAC_efrt[which(is.infinite(TAAC_efrt$hrsPig)==F),]
+# logarithmic fit
+fitTAAC <- lm(hrsPig ~ log(propRemaining), data=TAAC_efrtNI) # logarithmic fit
+summary(fitTAAC)
+linreg.ER(log(TAAC_efrtNI$propRemaining),TAAC_efrtNI$hrsPig)
+hrsPigTAAC.pred <- coef(fitTAAC)[1] + coef(fitTAAC)[2]*lpropRemaining.cont
+lines(exp(lpropRemaining.cont), hrsPigTAAC.pred, lty=2, col="red")
+
+# exponential: y = a * exp(-b*x)
+s.param.init <- c(5, 1)
+fitTAACExp <- nls(hrsPig ~ a * exp(-b*propRemaining), 
+                  data = TAAC_efrtNI,
+                  algorithm = "port",
+                  start = c(a = s.param.init[1], b = s.param.init[2]),
+                  trace = TRUE,      
+                  nls.control(maxiter = 1000, tol = 1e-05, minFactor = 1/1024))
+fitTAACExp.summ <- summary(fitTAACExp)
+hrsPigTAACExp.pred <- coef(fitTAACExp)[1] * exp(-coef(fitTAACExp)[2] * propRemaining.cont)
+lines(propRemaining.cont,hrsPigTAACExp.pred,lty=3,lwd=2,col="green")
+par(mfrow=c(1,1))
+
+#linear fit
+fitTAACLin <- lm(hrsPig ~ propRemaining, data=TAAC_efrtNI) # fits the Linear model
+summary(fitTAACLin) # provides summary statistics of the LM for AIC comparison, not plotted
+
+#intercept only
+fitTAACInt <- lm(hrsPig ~ 1, data=TAAC_efrtNI) 
+summary(fitTAACInt)
+
+## AIC test for comparison of log and exp fits
+# Poison 
+poison.AIC.vec <- c(AIC(fitPoison), AIC(fitPoisonExp), AIC(fitPoisonLin))
+poison.d.vec <- delta.AIC(poison.AIC.vec)
+poison.w.vec <- weight.AIC(poison.d.vec)
+poison.w.vec
+poison.d.vec
+
+# Trap
+trap.AIC.vec <- c(AIC(fitTrap), AIC(fitTrapExp), AIC(fitTrapLin))
+trap.d.vec <- delta.AIC(trap.AIC.vec)
+trap.w.vec <- weight.AIC(trap.d.vec)
+trap.w.vec
+trap.d.vec
+
+# Shot
+shot.AIC.vec <- c(AIC(fitShot), AIC(fitShotExp), AIC(fitShotLin))
+shot.d.vec <- delta.AIC(shot.AIC.vec)
+shot.w.vec <- weight.AIC(shot.d.vec)
+shot.w.vec
+shot.d.vec
+
+# TAAC
+TAAC.AIC.vec <- c(AIC(fitTAAC), AIC(fitTAACExp), AIC(fitTAACLin))
+TAAC.d.vec <- delta.AIC(TAAC.AIC.vec)
+TAAC.w.vec <- weight.AIC(TAAC.d.vec)
+TAAC.w.vec
+TAAC.d.vec
+
+#ratio of likelihood of log fit to exponential fit
+w.vec[2]/w.vec[1]
+#[1] 1.295422
+# exponential fit is 1.295422 times more likely. So difference is neglible
+

@@ -4,7 +4,7 @@
 # https://github.com/PeterHamnett/Pigs_test
 # requires library - Plotly
 ### update 2/12/2021
-## update includes: modification of code from https://github.com/KathrynVenning/FeralCatEradication for application to sus scrofa
+## update includes: modification of code from https://github.com/KathrynVenning/FeralCatEradication for application to Sus scrofa
 
 
 ## remove everything
@@ -96,7 +96,7 @@ init.vec <- ssd * pop.found #initial population vector. Sum of all values here =
 yr.now <- 2020 # Change to start year to 2021?
 #************************
 
-yr.end <- 2220 #end year for our projection timeframe
+yr.end <- 2023 #end year for our projection timeframe
 #************************
 t <- (yr.end - yr.now) #timeframe
 ## we can adjust this later to explore different scenarios 
@@ -384,8 +384,11 @@ lines(harv.prop.consist, min.up.n, col="red", lty=2)
 minn.prop.pop <- data.frame(harv.prop.consist, min.med.n, min.lo.n, min.up.n)
 
 
+
 ##################################################################################################################################################
 ## high harvest for first 2 years, constant proportional harvest in remaining years
+## High rate of constant proportional offtake required to reduce population to zero within 4 years (i.e. PIRSA time frame)
+## if time allows, use this section to simulate alternative scenario with eradication occurring over 10 years. May find that costs are lower??
 #####################################################################################################################################################
 
 # harvest rate
@@ -549,79 +552,235 @@ min3d <- plot_ly(showscale = FALSE) %>%
 min3d
 
 
-#######################################################################################################################################################################################################
-######################################################################################### COSTS #################################################################################################
-########################################################################################################################################################################################################
-## high harvest for initial 2 years, consistent harvest remaining years
-############################################################################################################################################################################################################
-## contributed by CJA Bradshaw
-###########################################################################################
+######################################################################################################################################
+############################## COSTS #################################################################################################
+######################################################################################################################################
 
-Dudley.area <- 375*100 #ha
-KI.area <- 4405*100  #ha
+# Project.area <- 192700 #ha
+# not sure how to factor in effort density. All reported effort occurred across the whole study site.
+
+# no.pigs <-      ## derived from constant proportional cull 
+                  ## proportion of pigs culled*population at start of time increment
+
+# no.hrs <-       ## derived from no.pigs*density dependent efficiency functions for each control method.
 
 ## cost parameters
-felixer.unit <- 13000 # AU$ #cost from felix vs felixer report 
-trap.unit <- c(157,297) # AU$ # cost per trap from traps.com.au
-shoot.ph <- 518.54/20 # ammo & labour (total AU$ over 20 hours) # Holmes et al 2015
-only.bait.unit <- (2.07 + 0.2) # From Curiosity correspondence. $2.07 per bait + $0.20  + $250 administration fee per order, + freight fee. 500 baits per pack
+#### GENERIC COSTS####
+# these apply to more than one control method
+labour.ph <-36.87 ## $36.87 per hour, based on SA Public Sector Award OPS4 classification. 
+                  ## Applies to all control types
+                  ## TAAC accrues labour in 8hr blocks (daily) whereas others accrue in 1hr increments
 
-# Felixers data from Moseby et al (2020)
-# 20 felixers for "felixer paddock", Arid Recovery (n1 = 48), killed 31 cats (n2 = 17), over 41 days 
-num.felixer <- round((20/48) * pop.found, 0)
-pfelixer.killr <- (31/48 * (1/(41/365)))
+Bullets.pp <- 4   ## 2 bullets per pig @ $2 per bullet
+                  ## applies to shooting, TAAC and trapping.
+                  ## 2 per pig allows for misses and sight zeroing.
+
+freefeed.ph <- 14 ## based on daily deployment of 10kg grain at $1.4 per kg. Deployment of grain takes 1 hr per day 
+                  ## Same rate applies for all methods where free feeding is used: 1 hr FF per day @ $14/hr
+
+#### METHOD SPECIFIC COSTS####
+
+####THERMAL ASSISTED AERIAL CULL (TAAC)####
+TAAC.initial <-12146 # total initialisation cost $12,246.00, comprising...
+  # crew and helicopter mobilisation (from Jindabyne, NSW to KI)  $7,400.00 
+  # Project data management $2,400.00  
+  # Initial fuel delivery $2,446.00
+TAAC.crew.pd <-2482.66 # daily cost for flight time and crew wages. Contractor charges daily, not by the hour
+TACC.crew.accomm <-420.00# daily crew food and accommodation
+TAAC.mrksmn.accomm <-125 # marksman meals and accommodation (marksman supplied by SA Gov)
+TAAC.pd <-TAAC.crew.pd +  TACC.crew.accomm + (labour.ph*8) + TAAC.mrksmn.accomm # Total daily TAAC costs
+    ## labour*8 assumes marksman is allocated to TAAC in daily increments, rather than undertaking other activities when not flying
+TAAC.daily.ft <-3.7#average daily flight time (hrs/day). AM + PM flights    
+    ## Could divide daily cost by 3.7 to calculate hourly rate, but prefer to accrue costs daily as contractor charges daily rather than hourly
+    ## therefore, TAAC.total.pd accrued for every 3.7hrs effort  
+TAAC.resupply<-1246.00# cost for additional fuel every 30 days = 30 x 3.7hrs =  111hrs   
+    ## cost accrued in increments of 111hrs TAAC work completed.
+    ## HAVEN'T WORKED OUT HOW TO CODE THIS YET##
+    
+    
+#TAAC.total.cost <- TAAC.initial + ((TAAC.pd*no.hrs)/TAAC.daily.ft) + Bullets.pp*no.pigs + TAAC.resupply
+    # total cost is initialisation + ((cost per day*no.hrs)/3.7) + cost per pig*no.pigs +     
+    ## no.pigs needs to be derived from proportional cull loop
+    ## no.hrs needs to be derived from density dependent efficiency function
+    
+####SHOOTING#####
+
+## opportunistic and Free-fed shooting are combined so need to work out an approach for combining proportional FF costs into total shooting effort
+    ## 83 events where O or FF could be determined
+      ## ratio of events O:FF = 68:15 = 0.2205882 FF events for every Opportunistic event
+      ## proportion of events: O = 15/83 = 0.1807229
+      ## proportion of events: FF = 68/83 = 0.8192771
+    ## 216 kills where O or FF could be determined
+      ## ratio of kills O:FF = 193:23 = 0.119171 FF kills for every Opportunistic kill
+      ## proportion of total kills : O = 193/216 = 0.8935185
+      ## prop total kill: FF = 23/216 = 0.1064815
+    ##  505 hrs total shooting effort recorded 
+      ## proportion of effort:O = 208/505 = 0.4118812
+      ## proportion of effort: FF = 297/505 = 0.5881188
+      ## ratio of effort O:FF = 208:297 = 0.7003367 hrs Opportunistic effort for every 1hr FF effort
+      ## proportion of effort seems the relevant measure as can be applied directly to the cull effort estimate. 
+      ## FF cost will be slightly exaggerated as final hour or two of FF shooting doesn't accrue feed costs. 
+      ## However, FF cost is negligible, only $14 per hour. 
+      ## Effort data aren't stratified into time spent FF vs shooting, but feel this is close enough based on available data
+shoot.ff.prop <- 0.5881188
+shoot.ff.ph <-freefeed.ph*shoot.ff.prop
+## so, total shooting estimate is labour per hour x number of hours + free feed cost per hour x no hours + cost of bullets per pig x no pigs killed.
+ 
+#shoot.total.cost <- labour.ph*no.hrs + shoot.ff.ph*no.hrs + bullets.pp*no.pigs 
+ # replace no.hrs and no.pigs with relevant storage matrices
+
+#### TRAPPING ####
+
+trap.initial <- labour.ph*20
+## per event
+## MK (PIRSA) says reported effort does not include set up/breakdown of traps when moved between locations
+## this is about 20hrs per trap site (2 staff members req'd for 5-10 trips to the trap site to slowly erect trap panels)
+
+trap.ff.labour <-labour.ph*mean(trap_efrt$efforthrs)
+## per event
+trap.ff<-freefeed.ph*mean(trap_efrt$efforthrs)
+## per event
+trap.ff.cost<-trap.ff.labour + trap.ff
+## per event
+## Average observed effort (excluding outliers) is 9.875hrs.
+## MK (PIRSA) suggested average was about 15hrs, but changed to observed average as more defensible
+
+## Assuming trap initialisation and deployment effort are constant (based on estimated average effort for set up and FF), 
+## no. pigs per trap must decrease as hrs per pig increases with declining pig abundance.
+
+#trap.number <-no.hrs/(20+mean(trap_efrt$efforthrs))
+  # no. of traps required to satisfy proportional cull quota
+  # no.hrs is a place holder for the hrs per pig (from efficiency curve) x no.pigs required to meet cull quota
+  ## update once functional response model has been integrated into proportional cull simulation.
+
+trap.unit <- 9500.00 # cost per unit for the Jager Pro trap
+## All effort completed using Jager Pro traps - no conventional traps used. Methodology reasonably controlled
+## FF effort translates to 1hr effort per day, so maximum effort for a trap per annum is 365hrs if constantly deployed.
+## however, traps are only deployed when needed and trap site duration is about 4-6 weeks so..
+### ## maximum trap use is about 8-12 trap sites per year. Use the average, 10 events per trap per year
+
+# trap.total.cost <-trap.initial + trap.ff.cost + trap.unit*trap.number                   bullets.pp*no.pigs
+  ## cost per year
+
+#####BAITING######
+
+bait.labour<-labour.ph*mean(poison_efrt$efforthrs)
+#labour cost per event for deploying grain, placebo and toxic bait
+## based on average observed effort (excluding outliers) ... mean(poison_efrt$efforthrs) = 12.7 hrs
+  ## MK estimated effort of 15 days followed by 4 days placebo and 1 day toxic baits, but this is not backed up by the data 
+  ## HogGone manufacturer recommends 2 days placebo and 2 days toxic bait, but PIRSA use a modified approach
+  ## can change to labour.ph*20 as per MK estimate, but prefer to use real data rather than arbitrary
+
+bait.ff<-freefeed.ph*(mean(poison_efrt$efforthrs)-5)
+# cost of grain for free feeding, per event
+# based on average observed effort, minus 5 hours effort for deploying placebos and toxic bait
+# PIRSA do  4 days placebo and 1 day toxic baits (discussed with MK).
+
+bait.placebo <-224
+# cost is per dispenser
+# $14 per placebo bait x 6 per dispenser x 4 days of placebo deployment per dispenser
+## 14 X 6 X 4 = 224
 
 
-felixer.area <- 26*100 #ha; density from Arid Recovery trial, "felixer paddock" = 26 km^2
-felixer.dens <- 20/felixer.area #20 felixer traps over the area, average density 0.77 felixers/km^2
-KI.felixer.num <- round(KI.area * felixer.dens, 0) # number of felixers needed if same density was applied throughout Kangaroo Island
-KI.felixer.num # not neccessarily reflective of the use of felixers as they are used in targeted areas and spread sporadically, as opposed to systematicaly placed like traps or baits
+bait.toxic <- 156
+# cost is per dispenser
+# $26 each x 6 per dispenser x 1 day of toxic bait deployment
+# 26 x 6 = 156
 
-# traps
-# 40 traps killed 21 over 148 days Hodgens 
-ptrap.killr <- (21/262 * (1/(148/365)))
-trap.dens <- 40/Dudley.area
-KI.trap.num <- round(KI.area * trap.dens, 0)
-KI.trap.num
+bait.dispenser.unit<-485
 
-# shooting
-# 14725 person-hours killed 872 (+ 172 from wounds) cats (Marion) Parkes et al. 2014 & Bloomer & Bester 1992
-# assume cats not killed by Felixers & traps shot by hunters
-cats.pph <- (872+172)/14725
+## how many pigs can one dispenser kill in a single event?
+  ## manufacturer recommends 1 dispenser per 20 pigs.
+  ## PIRSA kill rate was well short of this
+    ## mean(poison_efrt$numkilled) = 4.615385
+  # dispensers hold 6 baits
+  ## each bait is 625g
+  ## 100-200g of bait can kill an individual (according to manufacturer)
+  ## bait acts quickly so consumption beyond lethal dose is not expected (according to manufacturer)
+  ## so if bait capacity of dispenser is 6 x 625g = 3750g
+  ## 3750g can kill between 18.75 and 37.5 pigs!
+
+## However, PIRSA assume 1 dispenser for every 3 pigs!
 
 
-# baiting 
-# 943 baits killed 11 cats over 18.86 km^2. Pre-baiting dens = 1.18 cats/km^2, post-baiting = 0.58 cats/km^2. Ref, 'Dudley peninsula feral cat eradication operations plan: summary may 2020 - mid 2023"
-# KI uses Curiosity (PAPP)
-## Kangaroo Island area - 4,405 km^2  or 440 500 ha 
-# can't bait built-up areas, need 500m buffer zone around towns, built up areas 362 ha, how many built up areas? 
-## parndana (second largest town) approx area as circle - 2km^2 (??), + 500m buffer = area 10km^2. 5 'main towns' KI. 5*2 = 10km^2 or 1000 ha, :- approx 1000 ha can't bait urban
-# can't bait beaches. KI 540 km coastline, arbitary 100m buffer around coastline = 594 km can't bait + buffer zone. 540 * 1.1 = area no bait
-## Dirk Hartog Island, 15 cats collared, average density 0.701 cats/km^2 (average area = 10.515 km^2 (A = 15*0.701), 50 baits per km, baits = 50*10.515 = 525.75), 14 died following bait consumption ... 525.74/14 = 37.55 baits/cat
-# Dirk Hartog Island, used eradicat (1080)
-nobaitfarm <- (2303 - (2303*.94))*100 #ha; can't be baited 
-nobaitcoast <- (540 * 1.1)*100 #ha; dist around costline, *1.1 for the 100m buffer around coast 
-nobaittown <- 1000 #ha; can't bait town 
-nobaitarea <- nobaitfarm + nobaitcoast + nobaittown # total area can't be baited
-baitareaKI <- KI.area - nobaitarea #ha; area eligible for baiting 
-baitdens <- 50/100 # 50 baits per km^2 converted to baits per ha
-baitnum <- (baitareaKI * baitdens) #number of baits need for entire Island
+# however, a site can have multiple dispensers if monitoring indicates more than 1 required (i.e. >6 pigs present)
+  # PIRSA used 20 sites with 29 dispensers: average #dispensers per site is 1.45
+    # 1 site had 3 dispensers, 5 sites had 2 dispensers and the remaining 4 had 1.
 
-baitadminfee <- 250 # administration fee, once off for baits, or twice off for two years 
-baitdrop.time <- (30/60/60) * (baitareaKI/100) # 50 baits drops every 30 seconds or 1 km^2, with plane speed 240km/h - bait area/100 to convert back to km^2
-trips <- baitnum/3500 #can only take 3500 baits per trip 
-upandback <- seq(1,32,0.5) #ha; dist from airport to start of each bait transect
-averagedist <- (sum(upandback))/(length(upandback)) #ha; average dist from airport to transect
-baitreloadtime <- ((averagedist*trips)*2)/240 #52 trips needed to drop all baits, *2 for to and from airport, plan speed 240km
-planehph <- 750  #cost per hour plane hire when dropping baits, inc wages of 2x pilots (1x loading and dropping baits)
-planeferrycost <- (3*600)*2 # 3 hour flight William Creek to Kangaroo Island (*2 for return), $600 p/h for charter
-baitreloadcost <- baitreloadtime*planehph #average extra cost for reloading baits
-baitdropcost <- baitdrop.time*planehph
-planecost <- planeferrycost + baitreloadcost +  baitdropcost
-cost.total.bait <- planecost + baitadminfee + (only.bait.unit * baitnum) #cost of total baiting to cover entire island 
+## based on 20 days per baiting event, an individual bait dispenser can service 18.25 events per year
+## max kills per dispenser per year = 18.25 events x 6 pigs = 109.5 pigs
+## but, assuming average no. dispensers per site is 1.45
+## average max kills per event = 6 pigs x 1.45 traps = 8.7 pigs per event.
+## average max kills per year (single site) = 8.7pigs per event x 18.25 events = 158.775
 
-  
-pbait.killr <- 14/525.74 # 14 cats killed by 525.74 baits
+## assuming effort per site is fixed (20 hrs estimated average or 9.7hrs observed average), no.pigs per event decreases as effort per pig increases
+
+bait.dispenser.no <-
+  ## number of events required to fulfil annual cull quota = no.pigs/
+
+###### KV cat costs below - used as example to guide formulation of pig costs - Delete once pig costs complete ##############
+
+# # felixer.unit <- 13000 # AU$ #cost from felix vs felixer report 
+# # trap.unit <- c(157,297) # AU$ # cost per trap from traps.com.au
+# # shoot.ph <- 518.54/20 # ammo & labour (total AU$ over 20 hours) # Holmes et al 2015
+# # only.bait.unit <- (2.07 + 0.2) # From Curiosity correspondence. $2.07 per bait + $0.20  + $250 administration fee per order, + freight fee. 500 baits per pack
+# 
+# # Felixers data from Moseby et al (2020)
+# # 20 felixers for "felixer paddock", Arid Recovery (n1 = 48), killed 31 cats (n2 = 17), over 41 days 
+# num.felixer <- round((20/48) * pop.found, 0)
+# pfelixer.killr <- (31/48 * (1/(41/365)))
+# 
+# 
+# felixer.area <- 26*100 #ha; density from Arid Recovery trial, "felixer paddock" = 26 km^2
+# felixer.dens <- 20/felixer.area #20 felixer traps over the area, average density 0.77 felixers/km^2
+# KI.felixer.num <- round(KI.area * felixer.dens, 0) # number of felixers needed if same density was applied throughout Kangaroo Island
+# KI.felixer.num # not neccessarily reflective of the use of felixers as they are used in targeted areas and spread sporadically, as opposed to systematicaly placed like traps or baits
+# 
+# # traps
+# # 40 traps killed 21 over 148 days Hodgens 
+# ptrap.killr <- (21/262 * (1/(148/365)))
+# trap.dens <- 40/Dudley.area
+# KI.trap.num <- round(KI.area * trap.dens, 0)
+# KI.trap.num
+# 
+# # shooting
+# # 14725 person-hours killed 872 (+ 172 from wounds) cats (Marion) Parkes et al. 2014 & Bloomer & Bester 1992
+# # assume cats not killed by Felixers & traps shot by hunters
+# cats.pph <- (872+172)/14725
+# 
+# 
+# # baiting 
+# # 943 baits killed 11 cats over 18.86 km^2. Pre-baiting dens = 1.18 cats/km^2, post-baiting = 0.58 cats/km^2. Ref, 'Dudley peninsula feral cat eradication operations plan: summary may 2020 - mid 2023"
+# # KI uses Curiosity (PAPP)
+# ## Kangaroo Island area - 4,405 km^2  or 440 500 ha 
+# # can't bait built-up areas, need 500m buffer zone around towns, built up areas 362 ha, how many built up areas? 
+# ## parndana (second largest town) approx area as circle - 2km^2 (??), + 500m buffer = area 10km^2. 5 'main towns' KI. 5*2 = 10km^2 or 1000 ha, :- approx 1000 ha can't bait urban
+# # can't bait beaches. KI 540 km coastline, arbitary 100m buffer around coastline = 594 km can't bait + buffer zone. 540 * 1.1 = area no bait
+# ## Dirk Hartog Island, 15 cats collared, average density 0.701 cats/km^2 (average area = 10.515 km^2 (A = 15*0.701), 50 baits per km, baits = 50*10.515 = 525.75), 14 died following bait consumption ... 525.74/14 = 37.55 baits/cat
+# # Dirk Hartog Island, used eradicat (1080)
+# nobaitfarm <- (2303 - (2303*.94))*100 #ha; can't be baited 
+# nobaitcoast <- (540 * 1.1)*100 #ha; dist around coastline, *1.1 for the 100m buffer around coast 
+# nobaittown <- 1000 #ha; can't bait town 
+# nobaitarea <- nobaitfarm + nobaitcoast + nobaittown # total area can't be baited
+# baitareaKI <- KI.area - nobaitarea #ha; area eligible for baiting 
+# baitdens <- 50/100 # 50 baits per km^2 converted to baits per ha
+# baitnum <- (baitareaKI * baitdens) #number of baits need for entire Island
+# 
+# baitadminfee <- 250 # administration fee, once off for baits, or twice off for two years 
+# baitdrop.time <- (30/60/60) * (baitareaKI/100) # 50 baits drops every 30 seconds or 1 km^2, with plane speed 240km/h - bait area/100 to convert back to km^2
+# trips <- baitnum/3500 #can only take 3500 baits per trip 
+# upandback <- seq(1,32,0.5) #ha; dist from airport to start of each bait transect
+# averagedist <- (sum(upandback))/(length(upandback)) #ha; average dist from airport to transect
+# baitreloadtime <- ((averagedist*trips)*2)/240 #52 trips needed to drop all baits, *2 for to and from airport, plan speed 240km
+# planehph <- 750  #cost per hour plane hire when dropping baits, inc wages of 2x pilots (1x loading and dropping baits)
+# planeferrycost <- (3*600)*2 # 3 hour flight William Creek to Kangaroo Island (*2 for return), $600 p/h for charter
+# baitreloadcost <- baitreloadtime*planehph #average extra cost for reloading baits
+# baitdropcost <- baitdrop.time*planehph
+# planecost <- planeferrycost + baitreloadcost +  baitdropcost
+# cost.total.bait <- planecost + baitadminfee + (only.bait.unit * baitnum) #cost of total baiting to cover entire island 
+# 
+#   
+# pbait.killr <- 14/525.74 # 14 cats killed by 525.74 baits
 
 
 
@@ -629,35 +788,38 @@ pbait.killr <- 14/525.74 # 14 cats killed by 525.74 baits
 
 ###########################################################################################
 ## Type III functional response (reduction in capture efficiency with decreasing density)
-max.eff <- 1 # max efficiency 
-min.eff <- 0 #min efficiency
-max.pN <- 1 #max population proportion
-min.pN <- 0 #min population proportion
-infl.eff <- 0.5
-
-pN.vec <- c(min.pN, 0.2, 0.4, 0.5, 0.7, 0.8, max.pN) 
-eff.vec <- c(min.eff, 0.05, 0.3, infl.eff, 0.85, 0.95, max.eff)
-plot(pN.vec, eff.vec, type="b", pch=19)
-eff.dat <- data.frame(pN.vec, eff.vec)
-colnames(eff.dat) <- c("pN", "eff")
-
-# a/(1 + b*e^(-cx)) (logistic)
-param.init <- c(1, 85, 8.9)
-fit.eff <- nls(eff ~ a/(1+(b*exp(-c*pN))), 
-               data = eff.dat,
-               algorithm = "port",
-               start = c(a = param.init[1], b = param.init[2], c = param.init[3]),
-               trace = TRUE,      
-               nls.control(maxiter = 1000, tol = 1e-05, minFactor = 1/1024))
-fit.eff.summ <- summary(fit.eff)
-plot(pN.vec,eff.vec,pch=19,xlab="pN",ylab="efficiency")
-pN.vec.cont <- seq(0,1,0.01)
-pred.eff.fx <- coef(fit.eff)[1]/(1+(coef(fit.eff)[2]*exp(-coef(fit.eff)[3]*pN.vec.cont)))
-lines(pN.vec.cont,pred.eff.fx,lty=2,lwd=3,col="red")
-
-a.eff <- coef(fit.eff)[1]
-b.eff <- coef(fit.eff)[2]
-c.eff <- coef(fit.eff)[3]
+## copy across logistic and exponential models from pigEffort V1.6  
+  
+#### below is from KV cat model ### 
+# max.eff <- 1 # max efficiency 
+# min.eff <- 0 #min efficiency
+# max.pN <- 1 #max population proportion
+# min.pN <- 0 #min population proportion
+# infl.eff <- 0.5
+# 
+# pN.vec <- c(min.pN, 0.2, 0.4, 0.5, 0.7, 0.8, max.pN) 
+# eff.vec <- c(min.eff, 0.05, 0.3, infl.eff, 0.85, 0.95, max.eff)
+# plot(pN.vec, eff.vec, type="b", pch=19)
+# eff.dat <- data.frame(pN.vec, eff.vec)
+# colnames(eff.dat) <- c("pN", "eff")
+# 
+# # a/(1 + b*e^(-cx)) (logistic)
+# param.init <- c(1, 85, 8.9)
+# fit.eff <- nls(eff ~ a/(1+(b*exp(-c*pN))), 
+#                data = eff.dat,
+#                algorithm = "port",
+#                start = c(a = param.init[1], b = param.init[2], c = param.init[3]),
+#                trace = TRUE,      
+#                nls.control(maxiter = 1000, tol = 1e-05, minFactor = 1/1024))
+# fit.eff.summ <- summary(fit.eff)
+# plot(pN.vec,eff.vec,pch=19,xlab="pN",ylab="efficiency")
+# pN.vec.cont <- seq(0,1,0.01)
+# pred.eff.fx <- coef(fit.eff)[1]/(1+(coef(fit.eff)[2]*exp(-coef(fit.eff)[3]*pN.vec.cont)))
+# lines(pN.vec.cont,pred.eff.fx,lty=2,lwd=3,col="red")
+# 
+# a.eff <- coef(fit.eff)[1]
+# b.eff <- coef(fit.eff)[2]
+# c.eff <- coef(fit.eff)[3]
 
 ###########################################################################################
 
