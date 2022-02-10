@@ -557,7 +557,8 @@ min3d
 ######################################################################################################################################
 
 # Project.area <- 192700 #ha
-# not sure how to factor in effort density. All reported effort occurred across the whole study site.
+## not sure if area and density need to factored into calculations
+
 
 # no.pigs <-      ## derived from constant proportional cull 
                   ## proportion of pigs culled*population at start of time increment
@@ -627,14 +628,14 @@ shoot.ff.ph <-freefeed.ph*shoot.ff.prop
 ## so, total shooting estimate is labour per hour x number of hours + free feed cost per hour x no hours + cost of bullets per pig x no pigs killed.
  
 #shoot.total.cost <- labour.ph*no.hrs + shoot.ff.ph*no.hrs + bullets.pp*no.pigs 
- # replace no.hrs and no.pigs with relevant storage matrices
+ # replace no.hrs and no.pigs with outputs from relevant storage matrices
 
 #### TRAPPING ####
 
 trap.initial <- labour.ph*20
 ## per event
 ## MK (PIRSA) says reported effort does not include set up/breakdown of traps when moved between locations
-## this is about 20hrs per trap site (2 staff members req'd for 5-10 trips to the trap site to slowly erect trap panels)
+## this is about 20hrs per trap site (2 staff members required for 5-10 trips to the trap site to slowly erect trap panels)
 
 trap.ff.labour <-labour.ph*mean(trap_efrt$efforthrs)
 ## per event
@@ -646,41 +647,43 @@ trap.ff.cost<-trap.ff.labour + trap.ff
 ## MK (PIRSA) suggested average was about 15hrs, but changed to observed average as more defensible
 
 ## Assuming trap initialisation and deployment effort are constant (based on estimated average effort for set up and FF), 
-## no. pigs per trap must decrease as hrs per pig increases with declining pig abundance.
-
-#trap.number <-no.hrs/(20+mean(trap_efrt$efforthrs))
-  # no. of traps required to satisfy proportional cull quota
-  # no.hrs is a place holder for the hrs per pig (from efficiency curve) x no.pigs required to meet cull quota
-  ## update once functional response model has been integrated into proportional cull simulation.
+## no. pigs per trap decreases as hrs per pig increases with declining pig abundance.
 
 trap.unit <- 9500.00 # cost per unit for the Jager Pro trap
-## All effort completed using Jager Pro traps - no conventional traps used. Methodology reasonably controlled
-## FF effort translates to 1hr effort per day, so maximum effort for a trap per annum is 365hrs if constantly deployed.
-## however, traps are only deployed when needed and trap site duration is about 4-6 weeks so..
-### ## maximum trap use is about 8-12 trap sites per year. Use the average, 10 events per trap per year
+  ## All effort completed using Jager Pro traps - no conventional traps used so cost per trap unit is consistent
 
-# trap.total.cost <-trap.initial + trap.ff.cost + trap.unit*trap.number                   bullets.pp*no.pigs
-  ## cost per year
+
+#trap.number <-ceiling(no.hrs/10*(20+mean(trap_efrt$efforthrs))
+  
+  # no. of traps required to satisfy proportional cull quota
+    ## total effort required per year divided by the amount of effort a single trap can do per year
+    ## traps are only deployed when needed, rather than being permanently deployed at a site
+      ## trap site duration is about 4-6 weeks so..
+        ## maximum trap use is about 8-12 trap sites per year. Use 10 events per trap per year
+    ## used ceiling() to round up to nearest integer as we can only deploy whole traps
+    ## update once functional response model has been integrated into proportional cull simulation.
+
+# trap.total.cost.pa <-trap.number*(trap.initial + trap.ff.cost + trap.unit) + bullets.pp*no.pigs
+## but! If fewer traps needed in subsequent years than in first year, first year traps can be reused without buying any more.
 
 #####BAITING######
-
-bait.labour<-labour.ph*mean(poison_efrt$efforthrs)
+avg.bait.effort <- mean(poison_efrt$efforthrs)
+bait.labour<-labour.ph*avg.bait.effort
 #labour cost per event for deploying grain, placebo and toxic bait
-## based on average observed effort (excluding outliers) ... mean(poison_efrt$efforthrs) = 12.7 hrs
+## based on average observed effort (excluding outliers) ... avg.bait.effort = 12.7 hrs
   ## MK estimated effort of 15 days followed by 4 days placebo and 1 day toxic baits, but this is not backed up by the data 
   ## HogGone manufacturer recommends 2 days placebo and 2 days toxic bait, but PIRSA use a modified approach
   ## can change to labour.ph*20 as per MK estimate, but prefer to use real data rather than arbitrary
 
-bait.ff<-freefeed.ph*(mean(poison_efrt$efforthrs)-5)
+bait.ff<-freefeed.ph*(avg.bait.effort-5)
 # cost of grain for free feeding, per event
-# based on average observed effort, minus 5 hours effort for deploying placebos and toxic bait
-# PIRSA do  4 days placebo and 1 day toxic baits (discussed with MK).
+  # based on average observed effort, minus 5 hours effort for deploying placebos and toxic bait
+  # PIRSA do  4 days placebo and 1 day toxic baits (discussed with MK).
 
 bait.placebo <-224
 # cost is per dispenser
 # $14 per placebo bait x 6 per dispenser x 4 days of placebo deployment per dispenser
 ## 14 X 6 X 4 = 224
-
 
 bait.toxic <- 156
 # cost is per dispenser
@@ -690,34 +693,46 @@ bait.toxic <- 156
 bait.dispenser.unit<-485
 
 ## how many pigs can one dispenser kill in a single event?
-  ## manufacturer recommends 1 dispenser per 20 pigs.
-  ## PIRSA kill rate was well short of this
-    ## mean(poison_efrt$numkilled) = 4.615385
-  # dispensers hold 6 baits
+  # dispensers holds 6 baits
   ## each bait is 625g
   ## 100-200g of bait can kill an individual (according to manufacturer)
-  ## bait acts quickly so consumption beyond lethal dose is not expected (according to manufacturer)
+  ## bait acts quickly (1-3 hours) so consumption beyond lethal dose is not expected (according to manufacturer)
   ## so if bait capacity of dispenser is 6 x 625g = 3750g
-  ## 3750g can kill between 18.75 and 37.5 pigs!
+  ## 3750g can kill between 18.75 and 37.5 pigs
 
-## However, PIRSA assume 1 dispenser for every 3 pigs!
+## manufacturer (ACTA) deployment rate ## 
+  ##recommends 1 dispenser per 20 pigs.
 
+## However, 
+  ## PIRSA deployment rate##
+    ## PIRSA deploy roughly 1 dispenser for every 3 pigs detected.
+    ## While baits contain enough poison to kill much higher numbers, individuals can consume much more than the lethal dose before being affected
+      ## individual could consume several baits in a few minutes.
+      ## Also, some individuals (e.g. boars and large sows), can prevent other individuals from accessing the bait.
+    ## All up, project used 20 sites with 29 dispensers: average #dispensers per site is 1.45.
+      ## this includes sites that have been omitted as outliers
 
-# however, a site can have multiple dispensers if monitoring indicates more than 1 required (i.e. >6 pigs present)
-  # PIRSA used 20 sites with 29 dispensers: average #dispensers per site is 1.45
-    # 1 site had 3 dispensers, 5 sites had 2 dispensers and the remaining 4 had 1.
+## how many consecutive events or sites can a single set of dispensers do in a year?
+max.bait.events <-avg.bait.effort/365
+  ## based on 12.7 days per baiting event, at 1 hour effort per day, an individual bait dispenser can service 28.74016 events per year
+      ## could round down to allow for staff absences/holidays etc.
+        ## but should be able to bait year round if leave is staggered between multiple staff members.
 
-## based on 20 days per baiting event, an individual bait dispenser can service 18.25 events per year
-## max kills per dispenser per year = 18.25 events x 6 pigs = 109.5 pigs
-## but, assuming average no. dispensers per site is 1.45
-## average max kills per event = 6 pigs x 1.45 traps = 8.7 pigs per event.
-## average max kills per year (single site) = 8.7pigs per event x 18.25 events = 158.775
+# total.bait.events.pa <-no.hrs/avg.bait.effort
+  ## this is the number of baiting events required per year to achieve the proportional cull quota
 
-## assuming effort per site is fixed (20 hrs estimated average or 9.7hrs observed average), no.pigs per event decreases as effort per pig increases
+# dispenser.no <- Ceiling(((total.bait.events.pa/max.bait.events) *1.45))
+    ## number of bait dispensers required to satisfy annual proportional cull quota
+    ## total.bait.events.pa/max.bait.events gives the number of distinct sites 
+    ## multiplied by 1.45 to give number of dispensers 
+    ## Ceiling () used to round up to nearest integer so whole number of bait dispensers used.
 
-bait.dispenser.no <-
-  ## number of events required to fulfil annual cull quota = no.pigs/
-
+bait.total.cost.pa <- total.bait.events.pa * 
+  (bait.labour + bait.ff + (dispenser.no * (bait.placebo + bait.toxic))) + dispenser.no(bait.dispenser.unit)
+  
+## but! If fewer dispensers needed in subsequent years, no more dispensers need to be purchased as they can be reused.
+  ## so need to tweak this
+  
 ###### KV cat costs below - used as example to guide formulation of pig costs - Delete once pig costs complete ##############
 
 # # felixer.unit <- 13000 # AU$ #cost from felix vs felixer report 

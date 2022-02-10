@@ -35,18 +35,20 @@ TAAC.initial <-12146 # total initialisation cost $12,246.00, comprising...
 TAAC.crew.pd <-2482.66 # daily cost for flight time and crew wages. Contractor charges daily, not by the hour
 TACC.crew.accomm <-420.00# daily crew food and accommodation
 TAAC.mrksmn.accomm <-125 # marksman meals and accommodation (marksman supplied by SA Gov)
-TAAC.pd <-TAAC.crew.pd +  TACC.crew.accomm + (labour.ph*8) + TAAC.mrksmn.accomm # Total daily TAAC costs
-## labour*8 assumes marksman is allocated to TAAC in daily increments, rather than undertaking other activities when not flying
+TAAC.pd <-TAAC.crew.pd +  TACC.crew.accomm + (labour.ph*7.5) + TAAC.mrksmn.accomm # Total daily TAAC costs
+## labour*7.5 assumes marksman is allocated to TAAC in daily increments, rather than undertaking other activities when not flying
 TAAC.daily.ft <-3.7#average daily flight time (hrs/day). AM + PM flights    
 ## Could divide daily cost by 3.7 to calculate hourly rate, but prefer to accrue costs daily as contractor charges daily rather than hourly
 ## therefore, TAAC.total.pd accrued for every 3.7hrs effort  
 TAAC.resupply<-1246.00# cost for additional fuel every 30 days = 30 x 3.7hrs =  111hrs   
 ## cost accrued in increments of 111hrs TAAC work completed.
-## HAVEN'T WORKED OUT HOW TO CODE THIS YET##
+
+      ## HAVEN'T WORKED OUT HOW TO INCORPORATE FUEL RESUPPLY YET##
 
 
 #TAAC.total.cost <- TAAC.initial + ((TAAC.pd*no.hrs)/TAAC.daily.ft) + Bullets.pp*no.pigs + TAAC.resupply
 # total cost is initialisation + ((cost per day*no.hrs)/3.7) + cost per pig*no.pigs +     
+
 ## no.pigs needs to be derived from proportional cull loop
 ## no.hrs needs to be derived from density dependent efficiency function
 
@@ -124,7 +126,7 @@ bait.labour<-labour.ph*avg.bait.effort
 bait.ff<-freefeed.ph*(avg.bait.effort-5)
 # cost of grain for free feeding, per event
 # based on average observed effort, minus 5 hours effort for deploying placebos and toxic bait
-# PIRSA do  4 days placebo and 1 day toxic baits (discussed with MK).
+# PIRSA do 4 days placebo and 1 day toxic baits (discussed with MK).
 
 bait.placebo <-224
 # cost is per dispenser
@@ -149,7 +151,7 @@ bait.dispenser.unit<-485
 ## manufacturer (ACTA) deployment rate ## 
 ##recommends 1 dispenser per 20 pigs.
 
-## However, 
+## HOWEVER 
 ## PIRSA deployment rate##
 ## PIRSA deploy roughly 1 dispenser for every 3 pigs detected.
 ## While baits contain enough poison to kill much higher numbers, individuals can consume much more than the lethal dose before being affected
@@ -167,7 +169,7 @@ max.bait.events <-avg.bait.effort/365
 # total.bait.events.pa <-no.hrs/avg.bait.effort
 ## this is the number of baiting events required per year to achieve the proportional cull quota
 
-# dispenser.no <- Ceiling(((total.bait.events.pa/max.bait.events) *1.45))
+# dispenser.no <- Ceiling((total.bait.events.pa/max.bait.events) *1.45)
 ## number of bait dispensers required to satisfy annual proportional cull quota
 ## total.bait.events.pa/max.bait.events gives the number of distinct sites 
 ## multiplied by 1.45 to give number of dispensers 
