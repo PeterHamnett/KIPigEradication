@@ -1,5 +1,14 @@
-## Combined effort-cost simplified model
+# Peter Hamnett, Kathryn Venning, Frédérik Saltré and Corey Bradshaw
+# Global Ecology, Flinders University — globalecologyflinders.com
+# feral pig (sus scrofa) eradication on Kangaroo Island
+# https://github.com/PeterHamnett/KIPigEradication
+### update 19/56/2022
+# base stocahstic model modified from https://github.com/KathrynVenning/FeralCatEradication
 
+
+
+## remove everything
+rm(list = ls())
 library(readr)
 library(dplyr)
 library(plotly)
@@ -47,12 +56,16 @@ estBetaParams <- function(mu, var) {
   return(params = list(alpha = alpha, beta = beta))
 }
 
+# if you've downloaded this script from https://github.com/PeterHamnett/KIPigEradication/settings...
+## change file paths to your own file locations
 setwd("/Users/peterhamnett/Documents - Peter’s MacBook Pro/R Resources/Projects /Pigs_test")
 source("~/Documents - Peter’s MacBook Pro/R Resources/Projects /Pigs_test/Scipts/matrixOperators.r")
 
 
 
-## EFFORT
+#### Functional Response Extimates ####
+
+# as above, change file path to local file location
 pigs_effort_no_LU <- read_csv("~/Documents - Peter’s MacBook Pro/R Resources/Projects /Pigs_test/data/final/pigeffort3.csv")
 effort <- data.frame(pigs_effort_no_LU)
 head(effort)
@@ -67,181 +80,167 @@ effort_dates$Date <- as.Date(effort$Date, format = "%d/%m/%y")
 # it worked so overwrite effort with the new data
 effort <- effort_dates
 
-# sort by date 
+# sort by date so oldest records are at the top of the data frame
 effort <- effort[order(effort$Date),] 
-# Oldest records are now at the top of the data frame
 
+# remove records where effort is na
 effort <- na.omit(effort)
 
 # create a new column with the inverse of pigs/hr i.e., hrs per pig
 ## this will allow us to quantify changes in cost relative to proportion of population remaining, once we have calculated cost per hour for each control type.
-
 effort$hrsPig <- effort$efforthrs/effort$numkilled
+
 #Check the new column was added
 head(effort)
 
-#continuous variables for model fitting
+#create continuous variables for model fitting
 lpropRemaining.cont <- log(seq(0.01, 1, 0.01))
 propRemaining.cont <- exp(lpropRemaining.cont)
 
 
-
 # create data subsets for each control technique
-#shot
 shot_efrt <- effort %>% filter (controlType == "shot")
-shot_efrt <- shot_efrt %>% filter (operator != "PJ") # excludes shooting by PJ
+shot_efrt <- shot_efrt %>% filter (operator != "PJ") # excludes shooting by PJ (all events recorded as 100hrs - to imprecise and invalid for fitting functional response model)
 TAAC_efrt <-effort %>% filter (controlType == "TAAC")
-TAAC_efrt <- TAAC_efrt[which(is.infinite(TAAC_efrt$hrsPig)==F),]
+TAAC_efrt <- TAAC_efrt[which(is.infinite(TAAC_efrt$hrsPig)==F),] # remove entries where TAC effort was infinite i.e., flights where no pigs were killed (0 kills/hours = infinite value)
 trap_efrt <-effort %>% filter (controlType == "trapped")
 trap_efrt <-trap_efrt %>% filter (org != "DEW") # excludes DEW outliers
 poison_efrt <- effort %>% filter (controlType == "poisoned")
 poison_efrt <- poison_efrt %>% filter (org != "LB") # excludes outliers - poisoning done by the landscape board
 
-#all control types combined for overlaying on a single plot
-comb_efrt <-rbind(shot_efrt,TAAC_efrt,trap_efrt,poison_efrt)
-
-
 # plot logarithmic and exponential effort~prop remaining relationships for each control type and fit models
-
 par(mfrow=c(2,2))
 par(mar = c(3,3,3,3))
+# Thesis figure 4 - results - Funcitonal response estimates
 
 #shot
 plot(hrsPig~propRemaining, data = shot_efrt, xlab = '', ylab = '', pch=19, cex=0.7, xlim=c(0,1), ylim=c(0,110))
 mtext("a", side = 3, line =-1.5, adj = 0.05, cex = 1)
 abline(h=0, lty=3, lwd=0.5)
-
-# logarithmic fit
-
-fitShot <- lm(hrsPig ~ log(propRemaining), data=shot_efrt, na.action =) # logarithmic fit
-summary(fitShot)
-linreg.ER(log(shot_efrt$propRemaining),shot_efrt$hrsPig)
-hrsPigShot.pred <- coef(fitShot)[1] + coef(fitShot)[2]*lpropRemaining.cont
-lines(exp(lpropRemaining.cont), hrsPigShot.pred, lty=2, col="red")
-
-# exponential: y = a * exp(-b*x)
-s.param.init <- c(200, 5)
-fitShotExp <- nls(hrsPig ~ a * exp(-b*propRemaining), 
-                  data = shot_efrt,
-                  #algorithm = "port",
-                  start = c(a = s.param.init[1], b = s.param.init[2]),
-                  trace = TRUE,      
-                  nls.control(maxiter = 1000, tol = 1e-05, minFactor = 1/1024))
-fitShotExp.summ <- summary(fitShotExp)
-fitShotExp.summ
-hrsPigShotExp.pred <- coef(fitShotExp)[1] * exp(-coef(fitShotExp)[2] * propRemaining.cont)
-lines(propRemaining.cont,hrsPigShotExp.pred,lty=3,lwd=2,col="blue")
+  # logarithmic fit
+    fitShot <- lm(hrsPig ~ log(propRemaining), data=shot_efrt, na.action =) # logarithmic fit
+    summary(fitShot)
+    linreg.ER(log(shot_efrt$propRemaining),shot_efrt$hrsPig)
+    hrsPigShot.pred <- coef(fitShot)[1] + coef(fitShot)[2]*lpropRemaining.cont
+    lines(exp(lpropRemaining.cont), hrsPigShot.pred, lty=2, col="red")
+  # exponential: y = a * exp(-b*x)
+    s.param.init <- c(200, 5)
+    fitShotExp <- nls(hrsPig ~ a * exp(-b*propRemaining), 
+                      data = shot_efrt,
+                      #algorithm = "port",
+                      start = c(a = s.param.init[1], b = s.param.init[2]),
+                      trace = TRUE,      
+                      nls.control(maxiter = 1000, tol = 1e-05, minFactor = 1/1024))
+    fitShotExp.summ <- summary(fitShotExp)
+    fitShotExp.summ
+    hrsPigShotExp.pred <- coef(fitShotExp)[1] * exp(-coef(fitShotExp)[2] * propRemaining.cont)
+    lines(propRemaining.cont,hrsPigShotExp.pred,lty=3,lwd=2,col="blue")
 
 ## TAAC
 plot(hrsPig~propRemaining, data = TAAC_efrt, xlab = '', ylab = '', pch=19, cex=0.7, xlim=c(0,1), ylim=c(0,5))
 mtext("b", side = 3, line =-1.5, adj = 0.05, cex = 1)
 abline(h=0, lty=3, lwd=0.5)
-
-
-# logarithmic fit
-fitTAAC <- lm(hrsPig ~ log(propRemaining), data=TAAC_efrt) # logarithmic fit
-summary(fitTAAC)
-linreg.ER(log(TAAC_efrt$propRemaining),TAAC_efrt$hrsPig)
-hrsPigTAAC.pred <- coef(fitTAAC)[1] + coef(fitTAAC)[2]*lpropRemaining.cont
-lines(exp(lpropRemaining.cont), hrsPigTAAC.pred, lty=2, col="red")
-
-# exponential: y = a * exp(-b*x)
-s.param.init <- c(5, 1)
-fitTAACExp <- nls(hrsPig ~ a * exp(-b*propRemaining), 
-                  data = TAAC_efrt,
-                  algorithm = "port",
-                  start = c(a = s.param.init[1], b = s.param.init[2]),
-                  trace = TRUE,      
-                  nls.control(maxiter = 1000, tol = 1e-05, minFactor = 1/1024))
-fitTAACExp.summ <- summary(fitTAACExp)
-hrsPigTAACExp.pred <- coef(fitTAACExp)[1] * exp(-coef(fitTAACExp)[2] * propRemaining.cont)
-lines(propRemaining.cont,hrsPigTAACExp.pred,lty=3,lwd=2,col="blue")
+  # logarithmic fit
+    fitTAAC <- lm(hrsPig ~ log(propRemaining), data=TAAC_efrt) # logarithmic fit
+    summary(fitTAAC)
+    linreg.ER(log(TAAC_efrt$propRemaining),TAAC_efrt$hrsPig)
+    hrsPigTAAC.pred <- coef(fitTAAC)[1] + coef(fitTAAC)[2]*lpropRemaining.cont
+    lines(exp(lpropRemaining.cont), hrsPigTAAC.pred, lty=2, col="red")
+  # exponential: y = a * exp(-b*x)
+    s.param.init <- c(5, 1)
+    fitTAACExp <- nls(hrsPig ~ a * exp(-b*propRemaining), 
+                      data = TAAC_efrt,
+                      algorithm = "port",
+                      start = c(a = s.param.init[1], b = s.param.init[2]),
+                      trace = TRUE,      
+                      nls.control(maxiter = 1000, tol = 1e-05, minFactor = 1/1024))
+    fitTAACExp.summ <- summary(fitTAACExp)
+    hrsPigTAACExp.pred <- coef(fitTAACExp)[1] * exp(-coef(fitTAACExp)[2] * propRemaining.cont)
+    lines(propRemaining.cont,hrsPigTAACExp.pred,lty=3,lwd=2,col="blue")
 
 #trapped
 plot(hrsPig~propRemaining, data = trap_efrt, xlab = '', ylab = '', pch=19, cex=0.7, xlim=c(0,1), ylim=c(0,40))
 mtext("c", side = 3, line =-1.5, adj = 0.05, cex = 1)
 abline(h=0, lty=3, lwd=0.5)
-
-# logarithmic fit
-fitTrap <- lm(hrsPig ~ log(propRemaining), data=trap_efrt, na.action = ) # logarithmic fit
-summary(fitTrap)
-linreg.ER(log(trap_efrt$propRemaining),trap_efrt$hrsPig)
-hrsPigTrap.pred <- coef(fitTrap)[1] + coef(fitTrap)[2]*lpropRemaining.cont
-lines(exp(lpropRemaining.cont), hrsPigTrap.pred, lty=2, col="red")
-
-# exponential: y = a * exp(-b*x)
-s.param.init <- c(12, 2)
-fitTrapExp <- nls(hrsPig ~ a * exp(-b*propRemaining), 
-                  data = trap_efrt,
-                  algorithm = "port",
-                  start = c(a = s.param.init[1], b = s.param.init[2]),
-                  trace = TRUE,      
-                  nls.control(maxiter = 1000, tol = 1e-05, minFactor = 1/1024))
-fitTrapExp.summ <- summary(fitTrapExp)
-hrsPigTrapExp.pred <- coef(fitTrapExp)[1] * exp(-coef(fitTrapExp)[2] * propRemaining.cont)
-lines(propRemaining.cont,hrsPigTrapExp.pred,lty=3,lwd=2,col="blue")
+  # logarithmic fit
+  fitTrap <- lm(hrsPig ~ log(propRemaining), data=trap_efrt, na.action = ) # logarithmic fit
+  summary(fitTrap)
+  linreg.ER(log(trap_efrt$propRemaining),trap_efrt$hrsPig)
+  hrsPigTrap.pred <- coef(fitTrap)[1] + coef(fitTrap)[2]*lpropRemaining.cont
+  lines(exp(lpropRemaining.cont), hrsPigTrap.pred, lty=2, col="red")
+  # exponential: y = a * exp(-b*x)
+  s.param.init <- c(12, 2)
+  fitTrapExp <- nls(hrsPig ~ a * exp(-b*propRemaining), 
+                    data = trap_efrt,
+                    algorithm = "port",
+                    start = c(a = s.param.init[1], b = s.param.init[2]),
+                    trace = TRUE,      
+                    nls.control(maxiter = 1000, tol = 1e-05, minFactor = 1/1024))
+  fitTrapExp.summ <- summary(fitTrapExp)
+  hrsPigTrapExp.pred <- coef(fitTrapExp)[1] * exp(-coef(fitTrapExp)[2] * propRemaining.cont)
+  lines(propRemaining.cont,hrsPigTrapExp.pred,lty=3,lwd=2,col="blue")
 
 #poisoned
 plot(hrsPig~propRemaining, data = poison_efrt, xlab = '', ylab = '', pch=19, cex=0.7, xlim=c(0,1), ylim=c(0,75))
 mtext("d", side = 3, line =-1.5, adj = 0.05, cex = 1)
 abline(h=0, lty=3, lwd=0.5)
+  # logarithmic fit: y = a + b*log(x)
+    fitPoison <- lm(hrsPig ~ log(propRemaining), data=poison_efrt) # logarithmic fit
+    summary(fitPoison)
+    linreg.ER(log(poison_efrt$propRemaining),poison_efrt$hrsPig)
+    lpropRemaining.cont <- log(seq(0.01, 1, 0.01))
+    hrsPigPoison.pred <- coef(fitPoison)[1] + coef(fitPoison)[2]*lpropRemaining.cont
+    lines(exp(lpropRemaining.cont), hrsPigPoison.pred, lty=2, col="red")
+  # exponential: y = a * exp(-b*x)
+    s.param.init <- c(200, 5)
+    fitPoisonExp <- nls(hrsPig ~ a * exp(-b*propRemaining), 
+                        data = poison_efrt,
+                        algorithm = "port",
+                        start = c(a = s.param.init[1], b = s.param.init[2]),
+                        trace = TRUE,      
+                        nls.control(maxiter = 1000, tol = 1e-05, minFactor = 1/1024))
+    fitPoisonExp.summ <- summary(fitPoisonExp)
+    propRemaining.cont <- exp(lpropRemaining.cont)
+    hrsPigPoisonExp.pred <- coef(fitPoisonExp)[1] * exp(-coef(fitPoisonExp)[2] * propRemaining.cont)
+    lines(propRemaining.cont,hrsPigPoisonExp.pred,lty=3,lwd=2,col="blue")
 
-# logarithmic fit: y = a + b*log(x)
-fitPoison <- lm(hrsPig ~ log(propRemaining), data=poison_efrt) # logarithmic fit
-summary(fitPoison)
-linreg.ER(log(poison_efrt$propRemaining),poison_efrt$hrsPig)
-lpropRemaining.cont <- log(seq(0.01, 1, 0.01))
-hrsPigPoison.pred <- coef(fitPoison)[1] + coef(fitPoison)[2]*lpropRemaining.cont
-lines(exp(lpropRemaining.cont), hrsPigPoison.pred, lty=2, col="red")
-
-# exponential: y = a * exp(-b*x)
-s.param.init <- c(200, 5)
-fitPoisonExp <- nls(hrsPig ~ a * exp(-b*propRemaining), 
-                    data = poison_efrt,
-                    algorithm = "port",
-                    start = c(a = s.param.init[1], b = s.param.init[2]),
-                    trace = TRUE,      
-                    nls.control(maxiter = 1000, tol = 1e-05, minFactor = 1/1024))
-fitPoisonExp.summ <- summary(fitPoisonExp)
-propRemaining.cont <- exp(lpropRemaining.cont)
-hrsPigPoisonExp.pred <- coef(fitPoisonExp)[1] * exp(-coef(fitPoisonExp)[2] * propRemaining.cont)
-lines(propRemaining.cont,hrsPigPoisonExp.pred,lty=3,lwd=2,col="blue")
-
-
-## plot with all 4 log models presented together in same frame
-plot(hrsPig~propRemaining, data = comb_efrt, xlab = '', ylab = '', pch=19, cex=0.7, xlim=c(0,1), ylim=c(0,35))
-abline(h=0, lty=3, lwd=0.5)
-lines(exp(lpropRemaining.cont), hrsPigShot.pred, lty=1, col="red")
-lines(exp(lpropRemaining.cont), hrsPigTAAC.pred, lty=2, col="red")
-lines(exp(lpropRemaining.cont), hrsPigTrap.pred, lty=3, col="red")
-lines(exp(lpropRemaining.cont), hrsPigPoison.pred, lty=4, col="red")
+# used in final presentation, but not in thesis. Will resurrect for manuscript
+  # all control types combined for overlaying on a single plot
+  # comb_efrt <-rbind(shot_efrt,TAAC_efrt,trap_efrt,poison_efrt)
+  # plot with all 4 log models presented together in same frame
+  # plot(hrsPig~propRemaining, data = comb_efrt, xlab = '', ylab = '', pch=19, cex=0.7, xlim=c(0,1), ylim=c(0,35))
+  # abline(h=0, lty=3, lwd=0.5)
+  # lines(exp(lpropRemaining.cont), hrsPigShot.pred, lty=1, col="red")
+  # lines(exp(lpropRemaining.cont), hrsPigTAAC.pred, lty=2, col="red")
+  # lines(exp(lpropRemaining.cont), hrsPigTrap.pred, lty=3, col="red")
+  # lines(exp(lpropRemaining.cont), hrsPigPoison.pred, lty=4, col="red")
 
 # linear and intercept only model fits for comparison
 # linear fit
-fitShotLin <- lm(hrsPig ~ propRemaining, data=shot_efrt) # fits the Linear model
-summary(fitShotLin) # provides summary statistics of the LM for AIC comparison, not plotted
-
-fitTAACLin <- lm(hrsPig ~ propRemaining, data=TAAC_efrt) # fits the Linear model
-summary(fitTAACLin) # provides summary statistics of the LM for AIC comparison, not plotted
-
-fitTrapLin <- lm(hrsPig ~ propRemaining, data=trap_efrt) # fits the Linear model
-summary(fitTrapLin) # provides summary statistics of the LM for AIC comparison, not plotted
-
-fitPoisonLin <- lm(hrsPig ~ propRemaining, data=poison_efrt) # fits the Linear model
-summary(fitPoisonLin) # provides summary statistics of the LM for AIC comparison, not plotted
+  fitShotLin <- lm(hrsPig ~ propRemaining, data=shot_efrt) # fits the Linear model
+  summary(fitShotLin) # provides summary statistics of the LM for AIC comparison, not plotted
+  
+  fitTAACLin <- lm(hrsPig ~ propRemaining, data=TAAC_efrt) # fits the Linear model
+  summary(fitTAACLin) # provides summary statistics of the LM for AIC comparison, not plotted
+  
+  fitTrapLin <- lm(hrsPig ~ propRemaining, data=trap_efrt) # fits the Linear model
+  summary(fitTrapLin) # provides summary statistics of the LM for AIC comparison, not plotted
+  
+  fitPoisonLin <- lm(hrsPig ~ propRemaining, data=poison_efrt) # fits the Linear model
+  summary(fitPoisonLin) # provides summary statistics of the LM for AIC comparison, not plotted
 
 # intercept only
-fitShotInt <- lm(hrsPig ~ 1, data=shot_efrt) 
-summary(fitShotInt)
-
-fitTAACInt <- lm(hrsPig ~ 1, data=TAAC_efrt) 
-summary(fitTAACInt)
-
-fitTrapInt <- lm(hrsPig ~ 1, data=trap_efrt) 
-summary(fitTrapInt)
-
-fitPoisonInt <- lm(hrsPig ~ 1, data=poison_efrt) 
-summary(fitPoisonInt)
+  fitShotInt <- lm(hrsPig ~ 1, data=shot_efrt) 
+  summary(fitShotInt)
+  
+  fitTAACInt <- lm(hrsPig ~ 1, data=TAAC_efrt) 
+  summary(fitTAACInt)
+  
+  fitTrapInt <- lm(hrsPig ~ 1, data=trap_efrt) 
+  summary(fitTrapInt)
+  
+  fitPoisonInt <- lm(hrsPig ~ 1, data=poison_efrt) 
+  summary(fitPoisonInt)
 
 # goodness of fit comparison for different models
 # wAIC values used for comparison and for calculating evidence ratios
@@ -269,20 +268,21 @@ poison.w.vec <- weight.AIC(poison.d.vec)
 poison.w.vec
 poison.d.vec
 
+# return to plot arrangement tp single plots rather than 2x2 plot grid
 par(mfrow=c(1,1))
-  # return to single plots rather than 2x2 plot grid
 
-## PROJECTION
-# create Leslie matrix
+#### Stochastic Population Projection ####
+#### create Leslie matrix ####
+
 age.max = 6 # Choquenot, D (1996) says few pigs live longer than 5 in Australia, but much greater longevity reported both in Australia and elsewhere
 
-## create vectors 
+## create fertility and survival vectors 
+#### Fertility ####
+## fertility values for each age class derived from Bieber and Ruf (2005)
+f.vec <- c(0.8, 2.3375, 2.925, 2.925, 2.925, 2.835)
+## alternative f.vec <-c(0.79, 2.38, 2.38, 2.38, 2.38, 2.38) values calculated from Choquenot (1996), but frequency distribution not known for calculating SD
 
-f.vec <- c(0.8, 2.3375, 2.925, 2.925, 2.925, 2.835) # from Bieber and Ruf (2005)
-## alternative f.vec <-c(0.79, 2.38, 2.38, 2.38, 2.38, 2.38) values calculated from Choquenot (1996)
-
-## KI feral pig birth rates matrix, data for female offspring produced each year.
-
+## visualise change in mean fertility as a function of age
 plot(0:5,f.vec, pch=19, type="b")
 
 # fertility errors based on Bieber and Ruf (2005). 
@@ -292,7 +292,7 @@ Y.f.sd <- mean(c(((1.8 - 1.625)/2) ,((2.3375 - 1.8)/2))) #mean and standard devi
 A.f.sd <- mean(c(((2.835 - 1.7)/2),((2.925 - 1.7)/2))) #mean and standard deviations, adult fertility
 f.sd.vec <- c(J.f.sd, Y.f.sd, A.f.sd, A.f.sd, A.f.sd, A.f.sd) #mean and standard deviations vector, juvenile and adult fertility 
 
-#survival
+#### Survival ####
 s.vec <- c(0.33, 0.40, 0.66, 0.66, 0.66, 0.58) ##feral pig survival # intermediate values from Bieber and Ruf (2005), except 6 which is the poor value.
 ## s.vec <- c(0.45, 0.675, 0.675, 0.675, 0.675, 0.675) ## alternative values from Choquenot (1996) 
 
@@ -303,6 +303,7 @@ Y.s.sd <- mean(c(((0.40 - 0.31)/2),((0.60 - 0.40)/2))) #mean and standard deviat
 A.s.sd <- mean(c(((0.66 -0.58)/2),((0.71 -0.66)/2))) #mean and standard deviations, adult survival
 s.sd.vec <- c(J.s.sd, Y.s.sd, A.s.sd, A.s.sd, A.s.sd, A.s.sd) #mean and standard deviations vector, juvenile and adult survival
 
+## visualise change in mean survival as a function of age
 plot(0:5,s.vec,pch=19,type="b")
 
 # create matrix
@@ -327,18 +328,18 @@ ssd <- stable.stage.dist(popmat) ## sum of all values in ssd = 1
 init.vec <- ssd * pop.found #initial population vector. Sum of all values here = 500 as suggested by PIRSA
 ## (can change to whatever we want our founding pop to be)
 
-#################
-## project
+
+#### Deterministic population projection ####
+# i.e., project population growth from the leslie matrix without incorporating stochasticity
 ## set time limit for projection in 1-yr increments
 yr.now <- 2020 
 #************************
 
-yr.end <- 2023 #end year for our projection timeframe
+yr.end <- 2023 #end year for our projection time frame
 #************************
 t <- (yr.end - yr.now) #timeframe
-## we can adjust this later to explore different scenarios 
-## e.g., probability of achieving eradication by various control techniques or proportional rate of offtake within 3 years
-
+## time frame can be adjusted to explore different scenarios, but set to 3 here in line with PIRSA target time frame for pig eradication
+    
 tot.F <- sum(popmat.orig[1,]) ## this is the sum of fertility values in row 1 of the deterministic matrix. 
 ## Initially this is the same as f.vec, but popmat will change for each iteration as values are stochastically resampled 
 popmat <- popmat.orig #resets matrix 
@@ -350,7 +351,7 @@ n.mat[,1] <- init.vec #fill first matrix column with initial population vector
 
 ## set up projection loop
 for (i in 1:t) { #  for every year of the specified timeframe...
-  n.mat[,i+1] <- popmat %*% n.mat[,i] #  the corresponding column of n.mat 
+  n.mat[,i+1] <- popmat %*% n.mat[,i] #  the corresponding column of n.mat...
   #is populated with the product of current year column multiplied by the deterministic matrix popmat
 }
 
@@ -359,11 +360,11 @@ n.pigs <- colSums(n.mat) #number of pigs in any year is the sum of all values in
 yrs <- seq(yr.now, yr.end, 1)
 plot(yrs, (n.pigs),type="l",lty=2,pch=19,xlab="year",ylab="N")
 
-# compensatory density feedback
-## SURVIVAL
+#### compensatory density feedback: SURVIVAL ####
 # K = carry capacity
 K.max <- 2500
 ## Southgate, R. (2018). Feral Pig Sus Scrofa and Feral Cat Felis catus monitoring on Kangaroo Island: 2014 to 2017 - found pig density to be stable during study period
+## Masters (2011) pig numbers estimated from densities observed elsewhere in Australia (0.4 - 4 km2 )
 ## pre-fire pig population estimated to be ~5000 (PIRSA personal communication)
 ## Assume pop remained stable between 2017 study and 2019 bushfire, so set k.max as 5000/2 (0.5 to account for females only) 
 
@@ -373,7 +374,10 @@ plot(K.s.vec,red.s.vec,pch=19,type="b")
 Kred.s.dat <- data.frame(K.s.vec,red.s.vec)
 
 # logistic power function a/(1+(x/b)^c) #fits logistic power function to population relative to carry capacity, K
-s.param.init <- c(1, K.max, 3) ## These values are arbitrary 
+s.param.init <- c(1, K.max, 3) ## These parameters are arbitrary and arrived at after testing various combinations until expected feedback response achieved.
+    ## parameter adjusts the initial value of the modifier and should be close to 1.
+    ## parameter b changes how quickly the modifier approaches K
+    ## parameter c adjusts the shape of the relationship between the modifier and K.
 fit.s.lp <- nls(red.s.vec ~ a/(1+(K.s.vec/b)^c), 
                 data = Kred.s.dat,
                 algorithm = "port",
@@ -390,7 +394,7 @@ s.a.lp <- coef(fit.s.lp)[1]
 s.b.lp <- coef(fit.s.lp)[2]
 s.c.lp <- coef(fit.s.lp)[3]
 
-# compensatory density feedback: FERTILITY
+#### compensatory density feedback: FERTILITY ####
 K.f.vec <- c(1,K.max*0.6,0.85*K.max,0.92*K.max,0.95*K.max) ## describes the x axis of the reduction curve
 red.f.vec <- c(1,0.993,0.987,0.985,0.984)
 
@@ -439,9 +443,7 @@ n.pigs <- colSums(n.mat)
 plot(yrs, n.pigs,type="l",main = "deterministic population projection", sub = " S and F density feedback", lty=1,pch=19,xlab="year",ylab="N",ylim=c(0,1.8*K.max)) #untreated population increases, rate of increase relative to K, no stochastic sampling
 abline(h=K.max, lty=2, col="red") #carry capacity
 
-
 #### iterations ####
-
 iter <- 1000 #final model run at 10 000
 itdiv <- iter/100 #final model rate at iter/1000
 
@@ -505,7 +507,7 @@ n.lo <- apply(n.sums.mat, MARGIN=2, quantile, probs=0.025, na.rm=T) # lower over
 datN <- data.frame(yrs, n.md, n.lo, n.up)
 tail(datN)
 
-## plot pop change in ggplot2
+## plot pop change in ggplot2 (thesis figure 2 - results)
 ggplot(data = datN, mapping = aes(x=yrs)) +
   geom_line(aes(y=n.md), color = "black") + 
   geom_line(aes(y=n.lo),color = "red", linetype = 2) + 
@@ -515,7 +517,7 @@ ggplot(data = datN, mapping = aes(x=yrs)) +
   labs(x = "Years", y = "Population (females)")
 
 
-## untreated pop. projection with S density reduction only (no F) for inclusion in supplementary material
+## untreated pop. projection with S density reduction only (no F) for inclusion in supplementary material 
 ## demonstrates unrestrained at upper confidence interval if density dependent feedback not applied to fertility
 
 n.sums.mat <- matrix(data = 0, nrow = iter, ncol = (t+1)) #storage matrix with 1000 rows and 11 columns based on 10 year timeframe
@@ -563,7 +565,7 @@ n.lo <- apply(n.sums.mat, MARGIN=2, quantile, probs=0.025, na.rm=T) # lower over
 datN <- data.frame(yrs, n.md, n.lo, n.up)
 tail(datN)
 
-## plot pop change in ggplot2
+## plot pop change in ggplot2 (thesis Figure S1 - Appendix 2)
 ggplot(data = datN, mapping = aes(x=yrs)) +
   geom_line(aes(y=n.md), color = "black") + 
   geom_line(aes(y=n.lo),color = "red", linetype = 2) + 
@@ -664,7 +666,7 @@ for (s in 1:length(harv.prop.consist)) {
 minn.prop.pop3 <- data.frame(harv.prop.consist, min.med.n3, min.lo.n3, min.up.n3)
 minn.prop.pop3$med.pop <- minn.prop.pop3$min.med.n3*250
 
-## plot in ggplot
+## plot in ggplot (thesis figure 3)
 harv3plot <- ggplot(data = minn.prop.pop3, mapping = aes(x=harv.prop.consist)) +
   geom_line(aes(y=min.med.n3), color = "black") + 
   geom_line(aes(y=min.lo.n3), color = "red", linetype = 2) + 
@@ -748,11 +750,6 @@ for (s in 1:length(harv.prop.consist)) {
   min.lo.n[s] <- quantile(min.pop.vec, probs=0.025, na.rm=T)
   min.up.n[s] <- quantile(min.pop.vec, probs=0.975, na.rm=T)
   
-  
-  # plot(yrs,n.md,type="l",xlab="year", ylab="minimum N", lwd=2, ylim=c(0.95*min(n.lo),1.05*max(n.up)))
-  # lines(yrs,n.lo,lty=2,col="red",lwd=1.5)
-  # lines(yrs,n.up,lty=2,col="red",lwd=1.5)
-  #
   # # print("##############")
   print(paste("harvest proportion = ", harv.prop.consist[s], sep=""))
   # print("##############")
@@ -775,20 +772,9 @@ harv10plot <- ggplot(data = minn.prop.pop, mapping = aes(x=harv.prop.consist)) +
   theme_bw() +
   labs(x = "Harvest Proportion", y = "Min N")
 
-# multipanel of constant prop harvest over 3 and 10 years
+# multipanel of constant prop harvest over 3 and 10 years (Thesis figure 3 - results)
 harvplot <- ggarrange(harv3plot, harv10plot, common.legend = TRUE, labels = c("a", "b"), legend = "bottom", nrow = 1, ncol = 2)
 harvplot
-
-
-
-# constant proportional cull thresholds
-  # 50 individuals (25 females) requires <= 0.92 constant prop cull
-  # 100 individuals (50 females) requires <= 0.67 constant prop cull
-  # run next section from 0.65 to 0.95 at 0.05 increments
-
-# calculate time for population to recover after culls 
-# popRem.vec<- propRemaining.cont*pop.found
-
 
 #### CONSTANT PROPORTIONAL CULL COSTS####
 # fixed cost components (not recalculated each loop)
@@ -840,7 +826,6 @@ tot.TAAC.rcost <- tot.trap.rcost <- tot.poison.rcost <- tot.shot.rcost <-
   tot.TAAC.cost <-tot.trap.cost <- tot.poison.cost <- tot.shot.cost <- tot.cost <-  
   tot.TAAC.hrs <-tot.trap.hrs <- tot.poison.hrs <- tot.shot.hrs <- tot.time <- rep(NA, t)
 prop.rcost.vec <-  inv.prop.rcost.vec <- weight.rcost.vec <- rep(NA, 4)
-
 
 # create matrix for calling different cull scenarios. Each row provides different set of proportions
 cull.props.mat <- matrix(0, 6, 4)
@@ -1104,8 +1089,6 @@ names(scenarios.tot.df) <- c("scenario", "harvest.prop", "tot.cost.lo", "tot.cos
 rownames(scenarios.tot.df)<-NULL
 scenarios.tot.df[ ,-1] <-lapply(scenarios.tot.df[ ,-1], as.numeric)
 View(scenarios.tot.df)
-
-
 
 ##### repeat cull scenarios projection for 10 years instead of 3 to compare costs and effort####
 ### Ideally this should be changed so that time frames t = 3 and t = 10 are run in loops
@@ -1417,6 +1400,7 @@ p10T <-ggplot(scenarios10.tot.df, aes(x = harvest.prop, y = tot.time.med, group=
   geom_line() + theme_bw() + scale_colour_manual(values=cbp2) +
         labs(title = "", subtitle =  "", y = "", x ="") + geom_vline(xintercept = 0.5, linetype = 3, color = "black")
 
+# Thesis figures 5 and 7 - results
 totcostfig <- ggarrange(p3C, p10C, common.legend = TRUE, labels = c("a", "b"), legend = "bottom", nrow = 1, ncol = 2)
 toteffortfig <- ggarrange(p3T, p10T, common.legend = TRUE, labels = c("a", "b"), legend = "bottom", nrow = 1, ncol = 2)
 
