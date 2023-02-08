@@ -1087,19 +1087,19 @@ for (s in 1:length(harv.prop.consist)) {
     } # end s loop
 } # end f loop
 
-scenarios.df <- as.data.frame(scenarios.mat[-(1:3),])
-names(scenarios.df) <- c("scenario", "harvest.prop", "year","low.cost", "median.cost", "upper.cost", 
+scenariosNK.df <- as.data.frame(scenarios.mat[-(1:3),])
+names(scenariosNK.df) <- c("scenario", "harvest.prop", "year","low.cost", "median.cost", "upper.cost", 
                          "low.time", "median.time", "upper.time", "median.N") 
-rownames(scenarios.df)<-NULL
-scenarios.df[ ,-1] <-lapply(scenarios.df[ ,-1], as.numeric)
-View(scenarios.df)
+rownames(scenariosNK.df)<-NULL
+scenariosNK.df[ ,-1] <-lapply(scenariosNK.df[ ,-1], as.numeric)
+View(scenariosNK.df)
 
-scenarios.tot.df<-as.data.frame(scenarios.tot[-1,])
-names(scenarios.tot.df) <- c("scenario", "harvest.prop", "tot.cost.lo", "tot.cost.med", "tot.cost.up", 
+scenariosNK.tot.df<-as.data.frame(scenarios.tot[-1,])
+names(scenariosNK.tot.df) <- c("scenario", "harvest.prop", "tot.cost.lo", "tot.cost.med", "tot.cost.up", 
                              "tot.time.low", "tot.time.med", "tot.time.up", "min.n.lower", "min.n.median", "min.n.upper")
-rownames(scenarios.tot.df)<-NULL
-scenarios.tot.df[ ,-1] <-lapply(scenarios.tot.df[ ,-1], as.numeric)
-View(scenarios.tot.df)
+rownames(scenariosNK.tot.df)<-NULL
+scenariosNK.tot.df[ ,-1] <-lapply(scenariosNK.tot.df[ ,-1], as.numeric)
+View(scenariosNK.tot.df)
 
 ##### repeat cull scenarios projection for 10 years instead of 3 to compare costs and effort####
 ### Ideally this should be changed so that time frames t = 3 and t = 10 are run in loops
@@ -1370,26 +1370,26 @@ for (f in 1:nrow(cull.props.mat)){
   } # end s loop
 } # end f loop
 
-scenarios10.df <- as.data.frame(scenarios.mat[-(1:10),])
-names(scenarios10.df) <- c("scenario", "harvest.prop", "year","low.cost", "median.cost", "upper.cost", 
+scenarios10NK.df <- as.data.frame(scenarios.mat[-(1:10),])
+names(scenarios10NK.df) <- c("scenario", "harvest.prop", "year","low.cost", "median.cost", "upper.cost", 
                            "low.time", "median.time", "upper.time", "median.N") 
-rownames(scenarios10.df)<-NULL
-scenarios10.df[ ,-1] <-lapply(scenarios10.df[ ,-1], as.numeric)
-View(scenarios10.df)
+rownames(scenarios10NK.df)<-NULL
+scenarios10NK.df[ ,-1] <-lapply(scenarios10NK.df[ ,-1], as.numeric)
+View(scenarios10NK.df)
 
-scenarios10.tot.df<-as.data.frame(scenarios.tot[-1,])
-names(scenarios10.tot.df) <- c("scenario", "harvest.prop", "tot.cost.lo", "tot.cost.med", "tot.cost.up", 
+scenarios10NK.tot.df<-as.data.frame(scenarios.tot[-1,])
+names(scenarios10NK.tot.df) <- c("scenario", "harvest.prop", "tot.cost.lo", "tot.cost.med", "tot.cost.up", 
                                "tot.time.low", "tot.time.med", "tot.time.up", "min.n.lower", "min.n.median", "min.n.upper")
-rownames(scenarios10.tot.df)<-NULL
-scenarios10.tot.df[ ,-1] <-lapply(scenarios10.tot.df[ ,-1], as.numeric)
-View(scenarios10.tot.df)
+rownames(scenarios10NK.tot.df)<-NULL
+scenarios10NK.tot.df[ ,-1] <-lapply(scenarios10NK.tot.df[ ,-1], as.numeric)
+View(scenarios10NK.tot.df)
 
-write_csv(scenarios.df, "/Users/peterhamnett/Documents - Peter’s MacBook Pro/R Resources/Projects /Pigs_test\\scenarios.df.csv")
-write_csv(scenarios.tot.df, "/Users/peterhamnett/Documents - Peter’s MacBook Pro/R Resources/Projects /Pigs_test\\scenarios.tot.df.csv")
-write_csv(scenarios10.df, "/Users/peterhamnett/Documents - Peter’s MacBook Pro/R Resources/Projects /Pigs_test\\scenarios10.df.csv")
-write_csv(scenarios10.tot.df, "/Users/peterhamnett/Documents - Peter’s MacBook Pro/R Resources/Projects /Pigs_test\\scenarios10.tot.df.csv")
+write_csv(scenariosNK.df, "/Users/peterhamnett/Documents - Peter’s MacBook Pro/R Resources/Projects /Pigs_test\\scenariosNK.df.csv")
+write_csv(scenariosNK.tot.df, "/Users/peterhamnett/Documents - Peter’s MacBook Pro/R Resources/Projects /Pigs_test\\scenariosNK.tot.df.csv")
+write_csv(scenarios10NK.df, "/Users/peterhamnett/Documents - Peter’s MacBook Pro/R Resources/Projects /Pigs_test\\scenarios10NK.df.csv")
+write_csv(scenarios10NK.tot.df, "/Users/peterhamnett/Documents - Peter’s MacBook Pro/R Resources/Projects /Pigs_test\\scenarios10NK.tot.df.csv")
 
-# use scenarios10.df and scenarios10.tot.df to produce combined plots fof cost per year for all scenarios per cull proportion
+# use scenarios10NK.df and scenarios10NK.tot.df to produce combined plots fof cost per year for all scenarios per cull proportion
 par(mfrow=c(1,1))
 # set a colourblind friendly palette
 cbp2 <- c("#000000", "#E69F00", "#56B4E9", "#009E73",
@@ -1397,25 +1397,25 @@ cbp2 <- c("#000000", "#E69F00", "#56B4E9", "#009E73",
 library(scales)
 
 # plot of total cost per scenario after 3 years
-p3C<-ggplot(scenarios.tot.df, aes(x = harvest.prop, y = tot.cost.med, group=scenario, colour=scenario)) +  
+p3C<-ggplot(scenariosNK.tot.df, aes(x = harvest.prop, y = tot.cost.med, group=scenario, colour=scenario)) +  
   geom_line() +  theme_bw() +scale_colour_manual(values=cbp2) +
   labs(title = "", subtitle =  "", y = "", x ="") + geom_vline(xintercept = 0.9, linetype = 3, color = "black") +
   scale_y_continuous(labels = comma)
 
 # plot of total time per scenario after 3 years
-p3T<- ggplot(scenarios.tot.df, aes(x = harvest.prop, y = tot.time.med, group=scenario, colour=scenario)) +  
+p3T<- ggplot(scenariosNK.tot.df, aes(x = harvest.prop, y = tot.time.med, group=scenario, colour=scenario)) +  
   geom_line() + theme_bw() + scale_colour_manual(values=cbp2) +
   labs(title = "", subtitle =  "", y = "", x ="") + geom_vline(xintercept = 0.9, linetype = 3, color = "black")
 
 # plot of total cost per scenario after 10 years
-p10C<-ggplot(scenarios10.tot.df, aes(x = harvest.prop, y = tot.cost.med, group=scenario, colour=scenario)) +  
+p10C<-ggplot(scenarios10NK.tot.df, aes(x = harvest.prop, y = tot.cost.med, group=scenario, colour=scenario)) +  
   geom_line() + theme_bw() + scale_colour_manual(values=cbp2) +
         labs(title = "", subtitle =  "", y = "", x ="") + geom_vline(xintercept = 0.6, linetype = 3, color = "black") +
         scale_y_continuous(labels = comma)
 
 # plot of total time per scenario after 10 years
 
-p10T <-ggplot(scenarios10.tot.df, aes(x = harvest.prop, y = tot.time.med, group=scenario, colour=scenario)) +  
+p10T <-ggplot(scenarios10NK.tot.df, aes(x = harvest.prop, y = tot.time.med, group=scenario, colour=scenario)) +  
   geom_line() + theme_bw() + scale_colour_manual(values=cbp2) +
         labs(title = "", subtitle =  "", y = "", x ="") + geom_vline(xintercept = 0.6, linetype = 3, color = "black")
 
