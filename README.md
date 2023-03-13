@@ -7,7 +7,12 @@
 <br>
 <a href="https://globalecologyflinders.com/people/#PH">Peter Hamnett</a> <br>
 <a href="http://globalecologyflinders.com" target="_blank">Global Ecology</a>, <a href="http://flinders.edu.au" target="_blank">Flinders University</a>, Adelaide, Australia <br>
-November 2021 <br>
+November 2021 / updated March 2023<br>
+  
+Accompanies paper:
+
+Hamnett, PW, F Saltré, B Page, M Tarran, M Korcz, K Fielder, L Andrews, CJA Bradshaw. 2023. <a href="http://doi.org/10.1101/2023.03.08.531659">Stochastic population models to identify optimal and cost-effective harvest strategies for feral pig eradication</a>. <em>bioRχiv</em> doi:10.1101/2023.03.08.531659
+
   
 ## Source files
 - <code>matrixOperators.R</code>
