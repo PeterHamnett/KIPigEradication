@@ -1,6 +1,6 @@
 # Age-structured models to predict eradication efficiency of feral pigs on Kangaroo Island
 <img align="right" src="pig.png" alt="feral pig" width="200" style="margin-top: 20px">
-
+<a href="https://doi.org/10.5281/zenodo.13859586"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.13859586.svg" alt="DOI"></a>
 <a href="https://www.tourkangarooisland.com.au/"><img align="center" src="KI.png" alt="Kangaroo Island" width="600" style="margin-top: 20px"></a>
 
   
