@@ -11,9 +11,9 @@ November 2021 / updated September 2024 (v1.0.1)<br>
 <br>
 Accompanies paper:<br>
 <br>
-Hamnett, PW, F Saltré, B Page, M Tarran, M Korcz, K Fielder, L Andrews, CJA Bradshaw. 2024. <a href="http://doi.org/10.1002/ecs2.70082">Stochastic population models to identify optimal and cost-effective harvest strategies for feral pig eradication</a>. <em>Ecosphere</em> 15: e70082. doi:10.1002/ecs2.70082
+Hamnett, PW, F Saltré, B Page, M Tarran, M Korcz, K Fielder, L Andrews, CJA Bradshaw. 2024. <a href="http://doi.org/10.1002/ecs2.70082">Stochastic population models to identify optimal and cost-effective harvest strategies for feral pig eradication</a>. <em>Ecosphere</em> 15: e70082. doi:10.1002/ecs2.70082<br>
 <br>
-and (now out-of-date) preprint:
+and (now out-of-date) preprint:<br>
 <br>
 Hamnett, PW, F Saltré, B Page, M Tarran, M Korcz, K Fielder, L Andrews, CJA Bradshaw. 2023. <a href="http://doi.org/10.1101/2023.03.08.531659">Stochastic population models to identify optimal and cost-effective harvest strategies for feral pig eradication</a>. <em>bioRχiv</em> doi:10.1101/2023.03.08.531659<br>
 <br>
