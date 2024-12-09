@@ -22,6 +22,7 @@ Hamnett, PW, F Saltré, B Page, M Tarran, M Korcz, K Fielder, L Andrews, CJA Bra
 - <code>matrixOperators.R</code>
   
 ## Further reading
+- <a href="https://conservationbytes.com/2024/12/04/5000-piggies-500-piggies-100-piggies-and-there-there-was-none/">5000 piggies, 500 piggies, 100 piggies, … and there there was none</a> (blog post)
 - <a href="https://github.com/cjabradshaw/KIpigCull">Non-age structured feral pig-culling model for Kangaroo Island</a> (Github repository)
 - <a href="https://pir.sa.gov.au/__data/assets/pdf_file/0004/396643/Updated_predictions_on_the_program_to_eradicate_feral_pigs_from_Kangaroo_Island.pdf">Eradication of pigs on Kangaroo Island: updated predictions to inform the probability of eradication</a> (report)
 - <a href="https://www.pir.sa.gov.au/biosecurity/introduced-pest-feral-animals/find_a_pest_animal/pigs">Feral pigs in South Australia</a> (webpage)
